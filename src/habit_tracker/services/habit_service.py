@@ -12,3 +12,8 @@ class HabitService(ABC):
     def list_habits(self):
         """Return a list of all habits."""
         raise NotImplementedError
+    
+    @abstractmethod
+    def remove_habit(self, habit_id: int):
+        """Remove a habit by its ID."""
+        raise NotImplementedError
