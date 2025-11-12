@@ -29,6 +29,8 @@ class TestHabitManager:
         assert isinstance(habits[0].created_date, datetime)
 
     def test_list_habits_returns_copy_like_list(self):
+        """Test that listing habits returns a list reflecting current state."""
+
         result = self.mgr.list_habits()
 
         # Should reflect current state and be a list
