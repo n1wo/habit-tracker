@@ -1,8 +1,8 @@
 import questionary
-from habit_tracker.services import HabitService 
+from habit_tracker.services import HabitService
 
 def add_habit(service: HabitService):
-
+    """Add a new habit via CLI prompts."""
     name = questionary.text("Enter habit name:").ask()
     if not name:
         print("No name entered.")
@@ -23,6 +23,7 @@ def add_habit(service: HabitService):
           f" - {habit.description or 'No description'}\n")
     
 def remove_habit(service: HabitService):
+    """Remove an existing habit via CLI prompts."""
     habits = service.list_habits()
     if not habits:
         print("\n📋 No habits to remove.\n")
@@ -53,6 +54,7 @@ def remove_habit(service: HabitService):
 
 
 def view_habits(service: HabitService):
+    """View all existing habits."""
     habits = service.list_habits()
     if not habits:
         print("\n📋 No habits yet.\n")
@@ -67,33 +69,3 @@ def view_habits(service: HabitService):
         created_txt = getattr(created, "strftime", lambda *_: str(created))("%Y-%m-%d %H:%M") if created else ""
         print(f" • (id={hid}) {h.name} [{period}] — {desc}  {created_txt}")
     print()
-
-def welcome_banner():
-    print("\n==============================")
-    print("   🏆 Habit Tracker CLI 🏆   ")
-    print("==============================\n")
-
-# --- Main Menu Loop ---
-def main_menu(service: HabitService):
-    welcome_banner()
-
-    while True:
-        choice = questionary.select(
-            "Choose an action:",
-            choices=[
-                "Add Habit",
-                "View Habits",
-                "Remove Habit",
-                "Exit"
-            ]
-        ).ask()
-
-        if choice == "Add Habit":
-            add_habit(service)
-        elif choice == "Remove Habit":
-            remove_habit(service)
-        elif choice == "View Habits":
-            view_habits(service)
-        elif choice == "Exit":
-            print("\n👋 Goodbye!\n")
-            exit()
