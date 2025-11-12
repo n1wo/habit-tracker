@@ -1,10 +1,26 @@
+# Byte-compiled / cache files
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Testing & linting caches
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-.venv/ venv/
-*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# Build and packaging
+build/
+dist/
+*.egg-info/
+
+# OS & IDE files
 .DS_Store
 .vscode/
 .idea/
-dist/ build/ *.egg-info/
+
+# Temporary or local files
+*.log
