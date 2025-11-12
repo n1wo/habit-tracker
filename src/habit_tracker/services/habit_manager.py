@@ -1,7 +1,8 @@
 from datetime import datetime
 from habit_tracker.models import Habit
+from .habit_service import HabitService
 
-class HabitManager:
+class HabitManager(HabitService):
     """Class to manage multiple habits in the habit tracker application."""
 
     def __init__(self):
