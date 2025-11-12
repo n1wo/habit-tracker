@@ -68,9 +68,14 @@ def view_habits(service: HabitService):
         print(f" • (id={hid}) {h.name} [{period}] — {desc}  {created_txt}")
     print()
 
-# --- Main Menu Loop ---
+def welcome_banner():
+    print("\n==============================")
+    print("   🏆 Habit Tracker CLI 🏆   ")
+    print("==============================\n")
 
+# --- Main Menu Loop ---
 def main_menu(service: HabitService):
+    welcome_banner()
 
     while True:
         choice = questionary.select(
