@@ -21,6 +21,35 @@ def add_habit(service: HabitService):
     habit = service.add_habit(name=name, periodicity=period_val, description=description or None)
     print(f"\n✅ Habit added: (id={getattr(habit,'habit_id','?')}) {habit.name} [{period_val}]"
           f" - {habit.description or 'No description'}\n")
+    
+def remove_habit(service: HabitService):
+    habits = service.list_habits()
+    if not habits:
+        print("\n📋 No habits to remove.\n")
+        return
+
+    choices = [f"(id={getattr(h,'habit_id','?')}) {h.name}" for h in habits]
+    choice = questionary.select(
+        "Select a habit to remove:",
+        choices=choices
+    ).ask()
+    if not choice:
+        print("No habit selected.")
+        return
+
+    # Extract habit_id from the selected choice
+    habit_id_str = choice.split(')')[0].strip('(id=')
+    try:
+        habit_id = int(habit_id_str)
+    except ValueError:
+        print("Invalid habit ID.")
+        return
+
+    success = service.remove_habit(habit_id)
+    if success:
+        print(f"\n🗑️ Habit removed: {choice}\n")
+    else:
+        print("\n❌ Habit not found.\n")
 
 
 def view_habits(service: HabitService):
@@ -49,14 +78,17 @@ def main_menu(service: HabitService):
             choices=[
                 "Add Habit",
                 "View Habits",
+                "Remove Habit",
                 "Exit"
             ]
         ).ask()
 
         if choice == "Add Habit":
             add_habit(service)
+        elif choice == "Remove Habit":
+            remove_habit(service)
         elif choice == "View Habits":
-                view_habits(service)
+            view_habits(service)
         elif choice == "Exit":
             print("\n👋 Goodbye!\n")
             exit()

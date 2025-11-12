@@ -36,3 +36,18 @@ class TestHabitManager:
         # Should reflect current state and be a list
         assert isinstance(result, list)
         assert len(result) == 3
+
+    def test_remove_habit_by_id(self):
+        """Test removing a habit by its ID."""
+
+        # Remove existing habit
+        success = self.mgr.remove_habit(habit_id=2)
+        assert success is True
+
+        habits = self.mgr.list_habits()
+        assert len(habits) == 2
+        assert all(h.habit_id != 2 for h in habits)
+
+        # Attempt to remove non-existing habit
+        success = self.mgr.remove_habit(habit_id=99)
+        assert success is False

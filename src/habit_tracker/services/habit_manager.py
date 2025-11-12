@@ -28,7 +28,16 @@ class HabitManager(HabitService):
         self.habits.append(new_habit)
 
         return new_habit
+    
+    def remove_habit(self, habit_id: int) -> bool:
+        """Remove a habit by its ID. Returns True if removed, False if not found."""
+        for habit in self.habits:
+            if habit.habit_id == habit_id:
+                self.habits.remove(habit)
+                return True
+        return False
 
     def list_habits(self) -> list[Habit]:
         """Return all stored habits."""
         return self.habits
+    
