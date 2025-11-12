@@ -2,6 +2,7 @@ from datetime import datetime
 from habit_tracker.services import HabitManager
 
 class TestHabitManager:
+    """Unit tests for the HabitManager class."""
 
     def setup_method(self):
         """Setup a HabitManager instance before each test."""
