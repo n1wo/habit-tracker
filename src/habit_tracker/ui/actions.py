@@ -69,3 +69,33 @@ def view_habits(service: HabitService):
         created_txt = getattr(created, "strftime", lambda *_: str(created))("%Y-%m-%d %H:%M") if created else ""
         print(f" • (id={hid}) {h.name} [{period}] — {desc}  {created_txt}")
     print()
+
+def log_completion(service: HabitService):
+    """Remove an existing habit via CLI prompts."""
+    habits = service.list_habits()
+    if not habits:
+        print("\n📋 No habits to log.\n")
+        return
+
+    choices = [f"(id={getattr(h,'habit_id','?')}) {h.name}" for h in habits]
+    choice = questionary.select(
+        "Select a habit to log:",
+        choices=choices
+    ).ask()
+    if not choice:
+        print("No habit selected.")
+        return
+
+    # Extract habit_id from the selected choice
+    habit_id_str = choice.split(')')[0].strip('(id=')
+    try:
+        habit_id = int(habit_id_str)
+    except ValueError:
+        print("Invalid habit ID.")
+        return
+
+    success = service.log_completion(habit_id)
+    if success:
+        print(f"\n✅ Habit loged: {choice}\n")
+    else:
+        print("\n❌ Habit not found.\n")

@@ -11,8 +11,9 @@ def main_menu(service: HabitService):
             "Choose an action:",
             choices=[
                 "Add Habit",
-                "View Habits",
                 "Remove Habit",
+                "View Habits",
+                "Log completion",
                 "Exit"
             ]
         ).ask()
@@ -23,6 +24,8 @@ def main_menu(service: HabitService):
             actions.remove_habit(service)
         elif choice == "View Habits":
             actions.view_habits(service)
+        elif choice == "Log completion":
+            actions.log_completion(service)
         elif choice == "Exit":
             print("\n👋 Goodbye!\n")
             exit()
