@@ -37,6 +37,16 @@ class HabitManager(HabitService):
                 return True
         return False
 
+    def log_completion(self, habit_id: int, when: datetime = None) -> bool:
+        """Check off habit completion by habit_id"""
+        when = when or datetime.now()
+        for habit in self.habits:
+            if habit.habit_id == habit_id:
+                habit.log_completion(when)
+                return True
+        return False
+
+
     def list_habits(self) -> list[Habit]:
         """Return all stored habits."""
         return self.habits

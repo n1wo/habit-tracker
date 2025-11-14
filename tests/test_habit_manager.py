@@ -51,3 +51,24 @@ class TestHabitManager:
         # Attempt to remove non-existing habit
         success = self.mgr.remove_habit(habit_id=99)
         assert success is False
+
+    def test_log_completion_delegates_to_habit(self):
+        """HabitManager.log_completion should add a completion to the correct habit and return True."""
+
+        when = datetime(2025, 1, 2, 8, 30, 0)
+
+        result = self.mgr.log_completion(self.h1.habit_id, when=when)
+
+        assert result is True
+        assert len(self.h1.completion_dates) == 1
+        assert self.h1.completion_dates[0] == when
+
+    
+    def test_log_completion_invalid_id_returns_false(self):
+        """If the habit_id does not exist, log_completion should return False and not crash."""
+        
+        when = datetime(2025, 1, 2, 8, 30, 0)
+
+        result = self.mgr.log_completion(999, when=when)
+
+        assert result is False
