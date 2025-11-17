@@ -67,7 +67,21 @@ def view_habits(service: HabitService):
         period = getattr(h, "periodicity", "?")
         created = getattr(h, "created_date", "")
         created_txt = getattr(created, "strftime", lambda *_: str(created))("%Y-%m-%d %H:%M") if created else ""
-        print(f" • id:{hid} name:{h.name} period:{period} — description:{desc}  created:{created_txt}")
+
+        # Created date formatting
+        created = getattr(h, "created_date", None)
+        created_txt = created.strftime("%Y-%m-%d %H:%M") if created else "—"
+
+        # Completion dates formatting
+        completion_dates = getattr(h, "completion_dates", [])
+        if isinstance(completion_dates, list) and completion_dates:
+            completion_dates_txt = ", ".join(
+                dt.strftime("%Y-%m-%d %H:%M") for dt in completion_dates
+            )
+        else:
+            completion_dates_txt = "—"
+
+        print(f" • id:{hid} name:{h.name} period:{period} — description:{desc}  created:{created_txt} completions:{completion_dates_txt}")
     print()
 
 def log_completion(service: HabitService):
