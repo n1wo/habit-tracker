@@ -14,6 +14,7 @@ def main_menu(service: HabitService):
                 "Remove Habit",
                 "View Habits",
                 "Log completion",
+                "Analytics",
                 "Exit"
             ]
         ).ask()
@@ -26,6 +27,8 @@ def main_menu(service: HabitService):
             actions.view_habits(service)
         elif choice == "Log completion":
             actions.log_completion(service)
+        elif choice == "Analytics":        # 👈 NEW
+            actions.analytics_menu(service)
         elif choice == "Exit":
             print("\n👋 Goodbye!\n")
             exit()
