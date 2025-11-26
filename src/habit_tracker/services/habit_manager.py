@@ -5,6 +5,7 @@ from habit_tracker.models import Habit
 from habit_tracker.storage import Storage 
 from .habit_service import HabitService
 
+
 class HabitManager(HabitService):
     """Class to manage multiple habits in the habit tracker application."""
 
@@ -64,6 +65,25 @@ class HabitManager(HabitService):
             return
         habits_data = [self._serialize_habit(h) for h in self.habits]
         self._storage.save_all(habits_data)   
+
+    @staticmethod
+    def _already_completed_for_period(habit, when: datetime) -> bool:
+        """Return True if the habit already has a completion in this period."""
+        per = getattr(habit, "periodicity", "").lower()
+
+
+        # WEEKLY
+        if per == "weekly":
+            year, week, _ = when.isocalendar() # get year and week number
+            for dt in habit.completion_dates: 
+                y, w, _ = dt.isocalendar()
+                if (y, w) == (year, week): # 
+                    return True
+            return False
+
+        # DAILY (default)
+        target_date = when.date()
+        return any(dt.date() == target_date for dt in habit.completion_dates)
 
     # ------------------------------------------------------------------
     # Public API
@@ -130,7 +150,10 @@ class HabitManager(HabitService):
         if habit is None:
             return False
         
-        # update entity
+        if self._already_completed_for_period(habit, when):
+            # already logged for this day/week
+            return False
+        
         habit.log_completion(when)
 
         # persist if storage available

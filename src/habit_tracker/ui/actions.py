@@ -110,6 +110,13 @@ def log_completion(service: HabitService):
 
     success = service.log_completion(habit_id)
     if success:
-        print(f"\n✅ Habit loged: {choice}\n")
+        print(f"\n✅ Habit logged: {choice}\n")
     else:
-        print("\n❌ Habit not found.\n")
+        # Distinguish between "not found" and "already logged this period"
+        current_habits = service.list_habits()
+        exists = any(getattr(h, "habit_id", None) == habit_id for h in current_habits)
+
+        if exists:
+            print("\nℹ️ Habit already logged for this period.\n")
+        else:
+            print("\n❌ Habit not found.\n")
