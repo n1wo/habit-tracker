@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from habit_tracker.services import HabitManager
 
 class TestHabitManager:
@@ -72,3 +72,62 @@ class TestHabitManager:
         result = self.mgr.log_completion(999, when=when)
 
         assert result is False
+
+    def test_daily_habit_cannot_be_completed_twice_same_day(self):
+        """Daily habit: second completion on the same day should be rejected."""
+        when_morning = datetime(2025, 1, 2, 8, 30, 0)
+        when_evening = datetime(2025, 1, 2, 20, 0, 0)  # same calendar day
+
+        result1 = self.mgr.log_completion(self.h1.habit_id, when=when_morning)
+        result2 = self.mgr.log_completion(self.h1.habit_id, when=when_evening)
+
+        assert result1 is True
+        assert result2 is False
+
+        # Only one completion stored
+        assert len(self.h1.completion_dates) == 1
+        assert self.h1.completion_dates[0] == when_morning
+
+    def test_daily_habit_can_be_completed_on_multiple_days(self):
+        """Daily habit: different days should both be allowed."""
+        day1 = datetime(2025, 1, 2, 8, 30, 0)
+        day2 = datetime(2025, 1, 3, 9, 0, 0)  # next calendar day
+
+        result1 = self.mgr.log_completion(self.h1.habit_id, when=day1)
+        result2 = self.mgr.log_completion(self.h1.habit_id, when=day2)
+
+        assert result1 is True
+        assert result2 is True
+
+        assert len(self.h1.completion_dates) == 2
+        assert self.h1.completion_dates[0] == day1
+        assert self.h1.completion_dates[1] == day2
+
+    def test_weekly_habit_cannot_be_completed_twice_same_week(self):
+        """Weekly habit: multiple completions in the same ISO week should be rejected."""
+        base = datetime(2025, 1, 6, 8, 0, 0)  # e.g. Monday
+        same_week = base + timedelta(days=2)  # Wednesday of same ISO week
+
+        result1 = self.mgr.log_completion(self.h2.habit_id, when=base)
+        result2 = self.mgr.log_completion(self.h2.habit_id, when=same_week)
+
+        assert result1 is True
+        assert result2 is False
+
+        assert len(self.h2.completion_dates) == 1
+        assert self.h2.completion_dates[0] == base
+
+    def test_weekly_habit_can_be_completed_in_different_weeks(self):
+        """Weekly habit: completions in different ISO weeks should be allowed."""
+        base = datetime(2025, 1, 6, 8, 0, 0)          # Monday, week X
+        next_week = base + timedelta(days=7)          # Monday, week X+1
+
+        result1 = self.mgr.log_completion(self.h2.habit_id, when=base)
+        result2 = self.mgr.log_completion(self.h2.habit_id, when=next_week)
+
+        assert result1 is True
+        assert result2 is True
+
+        assert len(self.h2.completion_dates) == 2
+        assert self.h2.completion_dates[0] == base
+        assert self.h2.completion_dates[1] == next_week
