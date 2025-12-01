@@ -9,18 +9,14 @@ from habit_tracker.storage import SQLStore
 
 
 @pytest.fixture
-def sql_store(tmp_path, monkeypatch):
+def sql_store(tmp_path):
     """
     Create a fresh SQLStore using a temporary SQLite DB per test.
     This avoids touching the real 'habit_tracker.db'.
     """
     db_file = tmp_path / "test_habits.db"
-    # point SQLStore to our temp DB
-    monkeypatch.setattr(SQLStore, "_DB_NAME", str(db_file))
-
-    store = SQLStore()
+    store = SQLStore(str(db_file))
     return store
-
 
 def test_save_habit_and_load_without_completions(sql_store):
     created = datetime(2025, 1, 1, 8, 0, 0)
@@ -169,7 +165,7 @@ def test_delete_habit_removes_habit_and_tracking(sql_store):
     assert habits_after[0]["name"] == "Workout"
 
     # Optional: check directly that tracking rows for h1 are gone
-    conn = sqlite3.connect(sql_store._DB_NAME)
+    conn = sqlite3.connect(sql_store._db_name)
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM tracking WHERE habit_id = ?", (h1_id,))
     count = cursor.fetchone()[0]

@@ -1,17 +1,24 @@
+
 import sqlite3
-from habit_tracker.storage import Storage
 from datetime import datetime
+from typing import Optional
+
+from habit_tracker.storage import Storage
+from habit_tracker.models import User
 
 class SQLStore(Storage):
-    _DB_NAME = 'habit_tracker.db'
+    _DEFAULT_DB_NAME = "habit_tracker.db"
 
-    def __init__(self):
+    def __init__(self, db_path: Optional[str] = None):
+        # allow overriding DB path (useful for tests)
+        self._db_name = db_path or self._DEFAULT_DB_NAME
         self._initialize_db()
 
     def _initialize_db(self):
-            with sqlite3.connect(self._DB_NAME) as conn:
+            with sqlite3.connect(self._db_name) as conn:
                 cursor = conn.cursor() # Creates a cursor, which is an object used to run SQL commands.
-
+                
+                # Habits table
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS habits (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,6 +28,8 @@ class SQLStore(Storage):
                         created_date TEXT NOT NULL
                     )
                 ''')
+
+                # Tracking table
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS tracking (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,13 +39,61 @@ class SQLStore(Storage):
                     )
                 ''')
 
+                # User table (single-user app; id is always 1)
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS user (
+                        id INTEGER PRIMARY KEY CHECK (id = 1),
+                        username TEXT NOT NULL,
+                        password_hash TEXT NOT NULL,
+                        salt TEXT NOT NULL
+                    )
+                    """
+                )
+
                 conn.commit() # Saves the table creation to the database
 
     # Storage interface methods
 
+    # ------------------------------------------------------------------
+    # User methods
+    # ------------------------------------------------------------------
+    def save_user(self, user: User):
+        """Insert or update the single user row."""
+        with sqlite3.connect(self._db_name) as conn:
+            cursor = conn.cursor()
+            # Use INSERT OR REPLACE to always keep id = 1
+            cursor.execute(
+                """
+                INSERT OR REPLACE INTO user (id, username, password_hash, salt)
+                VALUES (1, ?, ?, ?)
+                """,
+                (user.username, user.password_hash, user.salt),
+            )
+            conn.commit()
+
+    def load_user(self) -> Optional[User]:
+        """Load the single stored user, or None if not set."""
+        with sqlite3.connect(self._db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT username, password_hash, salt FROM user WHERE id = 1"
+            )
+            row = cursor.fetchone()
+
+            if row is None:
+                return None
+
+            username, password_hash, salt = row
+            return User(username=username, password_hash=password_hash, salt=salt)
+
+    # ------------------------------------------------------------------
+    # Habit methods
+    # ------------------------------------------------------------------
+
     # Save a single habit
     def save_habit(self, habit_data):
-        with sqlite3.connect(self._DB_NAME) as conn:
+        with sqlite3.connect(self._db_name) as conn:
             cursor = conn.cursor() 
 
             # Insert habit
@@ -65,7 +122,7 @@ class SQLStore(Storage):
 
     # Save all habits
     def save_all(self, habits_list):
-        with sqlite3.connect(self._DB_NAME) as conn:
+        with sqlite3.connect(self._db_name) as conn:
             cursor = conn.cursor()
 
             # Clear old data
@@ -96,7 +153,7 @@ class SQLStore(Storage):
         
     def log_completion(self, habit_id: int, when: datetime):
         """Persist a single completion event for a habit."""
-        with sqlite3.connect(self._DB_NAME) as conn:
+        with sqlite3.connect(self._db_name) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO tracking (habit_id, completion_date)
@@ -106,7 +163,7 @@ class SQLStore(Storage):
 
     # Load all habits
     def load_habits(self):
-        with sqlite3.connect(self._DB_NAME) as conn:
+        with sqlite3.connect(self._db_name) as conn:
             cursor = conn.cursor()
 
             cursor.execute("SELECT * FROM habits")
@@ -137,7 +194,7 @@ class SQLStore(Storage):
             return habits
         
     def delete_habit(self, habit_id):
-        with sqlite3.connect(self._DB_NAME) as conn:
+        with sqlite3.connect(self._db_name) as conn:
             cursor = conn.cursor()
 
             cursor.execute("DELETE FROM tracking WHERE habit_id = ?", (habit_id,))
