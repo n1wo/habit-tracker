@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from habit_tracker.services import HabitManager
+from habit_tracker.fixtures.example_data import ExampleDataFactory, EXAMPLE_HABIT_DEFS
 
 class TestHabitManager:
     """Unit tests for the HabitManager class."""
@@ -131,3 +132,98 @@ class TestHabitManager:
         assert len(self.h2.completion_dates) == 2
         assert self.h2.completion_dates[0] == base
         assert self.h2.completion_dates[1] == next_week
+
+class TestHabitManagerWithExampleData:
+    """
+    Tests for HabitManager that use the perfect example dataset.
+
+    The goal here is NOT to test the ExampleDataFactory itself (that has its
+    own tests), but to verify that HabitManager can:
+      • Ingest the generated example data correctly.
+      • Preserve all completion dates for each habit.
+      • Expose the same structure via list_habits() as the factory produces.
+    """
+
+    def setup_method(self):
+        """
+        Set up an in-memory HabitManager and populate it with the PERFECT
+        example dataset from ExampleDataFactory.
+
+        Steps:
+        1. Create HabitManager with no storage backend (pure in-memory).
+        2. Build the example habit dictionaries via ExampleDataFactory.
+        3. For each habit dict:
+           - Create a Habit inside the manager using add_habit()
+             (letting HabitManager decide created_date itself).
+           - Replay all completion_dates via log_completion().
+        """
+        # In-memory manager: we don't care about persistence in this test.
+        self.mgr = HabitManager(storage=None)
+
+        # Build the perfect 4-week dataset (already covered by its own tests).
+        self.factory = ExampleDataFactory(weeks=4)
+        self.example_dicts = self.factory.build()
+
+        # Load the example data into HabitManager.
+        for habit_dict in self.example_dicts:
+            # Note: HabitManager.add_habit does NOT accept created_date,
+            # so we only pass the supported arguments here.
+            habit = self.mgr.add_habit(
+                name=habit_dict["name"],
+                periodicity=habit_dict["periodicity"],
+                description=habit_dict["description"],
+            )
+
+            # Replay all completion timestamps onto the Habit instance.
+            for dt in habit_dict["completion_dates"]:
+                self.mgr.log_completion(habit.habit_id, when=dt)
+
+    def test_manager_contains_all_example_habits(self):
+        """
+        Test that HabitManager ends up with exactly the same number of habits
+        as defined by the example dataset.
+
+        What we verify:
+        • list_habits() returns one Habit per example habit.
+        • Names from HabitManager and factory output are consistent.
+        """
+        habits = self.mgr.list_habits()
+
+        # The manager should contain exactly all example habits.
+        assert len(habits) == len(self.example_dicts)
+        assert len(habits) == len(EXAMPLE_HABIT_DEFS)
+
+        # Compare names to ensure the mapping is as expected.
+        names_from_manager = sorted(h.name for h in habits)
+        names_from_example = sorted(h["name"] for h in self.example_dicts)
+        assert names_from_manager == names_from_example
+
+    def test_completion_dates_match_example_dataset(self):
+        """
+        Test that completion_dates stored in HabitManager match the dates
+        from the ExampleDataFactory exactly.
+
+        What we verify:
+        • For each habit name, the set of completion_dates in the manager
+          equals the set produced by the factory.
+        • No dates are lost, duplicated, or altered when passing through
+          HabitManager's add_habit + log_completion logic.
+        """
+        habits = self.mgr.list_habits()
+
+        # Build a helper mapping from habit name -> example dict.
+        example_by_name = {h["name"]: h for h in self.example_dicts}
+
+        for habit in habits:
+            example = example_by_name[habit.name]
+
+            # Convert both lists to sorted lists of datetime for comparison.
+            manager_dates = sorted(habit.completion_dates)
+            example_dates = sorted(example["completion_dates"])
+
+            # All dates must be datetime instances.
+            assert all(isinstance(d, datetime) for d in manager_dates)
+            assert all(isinstance(d, datetime) for d in example_dates)
+
+            # The manager must preserve exactly the same timestamps.
+            assert manager_dates == example_dates
