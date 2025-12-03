@@ -11,7 +11,7 @@ class SQLStore(Storage):
     # Project root: .../src/habit_tracker/storage/sql_store.py -> go up 3 levels
     _PROJECT_ROOT = Path(__file__).resolve().parents[3]
     _DATA_DB_DIR = _PROJECT_ROOT / "data" / "db"
-    _DATA_SAMPLE_DIR = _PROJECT_ROOT / "data" / "sample"
+    _DATA_SAMPLE_DIR = _PROJECT_ROOT / "data" / "example"
 
     # Default DB path in data/db
     _DEFAULT_DB_PATH = _DATA_DB_DIR / "habit_tracker.db"
