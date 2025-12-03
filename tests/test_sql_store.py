@@ -165,7 +165,7 @@ def test_delete_habit_removes_habit_and_tracking(sql_store):
     assert habits_after[0]["name"] == "Workout"
 
     # Optional: check directly that tracking rows for h1 are gone
-    conn = sqlite3.connect(sql_store._db_name)
+    conn = sqlite3.connect(sql_store._db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM tracking WHERE habit_id = ?", (h1_id,))
     count = cursor.fetchone()[0]
