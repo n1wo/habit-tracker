@@ -27,7 +27,7 @@ def main_menu(service: HabitService):
             actions.view_habits(service)
         elif choice == "Log completion":
             actions.log_completion(service)
-        elif choice == "Analytics":        # 👈 NEW
+        elif choice == "Analytics":
             actions.analytics_menu(service)
         elif choice == "Exit":
             return
