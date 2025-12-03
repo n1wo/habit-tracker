@@ -24,3 +24,8 @@ dist/
 
 # Temporary or local files
 *.log
+
+# SQLite databases (local development / testing only)
+*.db
+*.sqlite
+*.sqlite3

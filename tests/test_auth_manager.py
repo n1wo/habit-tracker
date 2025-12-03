@@ -118,3 +118,30 @@ def test_change_password_wrong_old():
 
     # Existing password should still work.
     assert auth.login("oldpass") is True
+
+def test_password_is_hashed_not_plain():
+    """
+    Ensure that AuthManager never stores the raw plain-text password.
+
+    What we verify:
+    • The stored password_hash must NOT equal the plain password.
+    • A salt must be generated (ensuring hashing is salted).
+    • The hashing mechanism produces a different value than the input.
+
+    This catches:
+    • Accidental storage of plain text passwords.
+    • Broken hashing implementation.
+    """
+    storage = InMemoryStorage()
+    auth = AuthManager(storage)
+
+    plain_password = "mysecretpassword"
+
+    user = auth.set_password(plain_password)
+
+    # password_hash must NOT equal the plain password.
+    assert user.password_hash != plain_password
+
+    # Also verify the user actually has a salt.
+    assert user.salt is not None and user.salt != ""
+
