@@ -30,5 +30,4 @@ def main_menu(service: HabitService):
         elif choice == "Analytics":        # 👈 NEW
             actions.analytics_menu(service)
         elif choice == "Exit":
-            print("\n👋 Goodbye!\n")
-            exit()
+            return

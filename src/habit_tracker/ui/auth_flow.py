@@ -1,5 +1,3 @@
-# src/habit_tracker/ui/auth_flow.py
-
 from __future__ import annotations
 import questionary
 import sys
