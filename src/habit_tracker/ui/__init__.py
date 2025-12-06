@@ -1,2 +1,2 @@
-from .main_menu import main_menu
+from .menus import main_menu
 __all__ = ["main_menu"]
