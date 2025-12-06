@@ -1,8 +1,7 @@
 from __future__ import annotations
 import questionary
 
-from habit_tracker.services.auth_manager import AuthManager, AuthError
-
+from habit_tracker.services.auth_manager import AuthManager
 
 def initial_password_setup(auth: AuthManager) -> bool:
     """Guide user through first-run password creation."""
