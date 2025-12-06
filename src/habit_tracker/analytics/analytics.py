@@ -84,21 +84,33 @@ def calculate_streak(habit) -> int:
 
 def longest_streak_overall(habits: Iterable[Habit]) -> dict[str, Any]:
     """
-    Return the habit with the longest overall streak.
+    Return ALL habits that share the longest overall streak.
 
     Returns:
-        {"habit": Habit | None, "streak": int}
+        {
+            "habits": list[Habit],   # all habits with longest streak
+            "streak": int            # the streak value
+        }
     """
     longest_streak = 0
-    best_habit: Habit | None = None
+    best_habits: list[Habit] = []
 
     for habit in habits:
         streak = calculate_streak(habit)
-        if streak > longest_streak:
-            longest_streak = streak
-            best_habit = habit
 
-    return {"habit": best_habit, "streak": longest_streak}
+        if streak > longest_streak:
+            # Found a new maximum — reset the list
+            longest_streak = streak
+            best_habits = [habit]
+
+        elif streak == longest_streak and streak > 0:
+            # Same as current max — append
+            best_habits.append(habit)
+
+    return {
+        "habits": best_habits,
+        "streak": longest_streak,
+    }
 
 def longest_streak_by_habit(habits: list, habit_id: int) -> int:
     habit = next((h for h in habits if h.habit_id == habit_id), None)

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from habit_tracker.models import Habit
+from habit_tracker.fixtures.example_data import ExampleDataFactory
 from habit_tracker.analytics import (
     list_all_habits,
     list_habits_by_periodicity,
@@ -172,51 +173,61 @@ class TestAnalytics:
     # ------------------------------------------------------------------
     # longest_streak_overall / longest_streak_by_habit
     # ------------------------------------------------------------------
-    def test_longest_streak_overall_returns_best_habit_and_streak(self):
-        base = self.base
+    def test_longest_streak_overall_returns_all_habits_with_same_max_streak(self):
+        """
+        Use ExampleDataFactory to create a perfect dataset.
+        All daily habits (with a 28-day streak) should tie for longest streak.
+        """
+        factory = ExampleDataFactory(start_date=self.base, weeks=4)
 
-        # h1: 2-day streak
-        h1 = self._make_habit(
-            1,
-            "Read",
-            "daily",
-            completion_dates=[base, base + timedelta(days=1)],
-        )
+        # Build the example dataset
+        habit_dicts = factory.build()
 
-        # h2: 3-day streak
-        h2 = self._make_habit(
-            2,
-            "Workout",
-            "daily",
-            completion_dates=[
-                base + timedelta(days=10),
-                base + timedelta(days=11),
-                base + timedelta(days=12),
-            ],
-        )
-
-        # h3: 1 completion only
-        h3 = self._make_habit(
-            3,
-            "Meditate",
-            "daily",
-            completion_dates=[base + timedelta(days=20)],
-        )
-
-        habits = [h1, h2, h3]
+        # Convert dicts to Habit instances using the Habit class __init__
+        habits: list[Habit] = []
+        for i, d in enumerate(habit_dicts, start=1):
+            habits.append(
+                Habit(
+                    habit_id=i,
+                    name=d["name"],
+                    periodicity=d["periodicity"],
+                    created_date=d["created_date"],
+                    description=d["description"],
+                    completion_dates=d["completion_dates"],
+                )
+            )
 
         result = longest_streak_overall(habits)
 
-        assert result["streak"] == 3
-        assert result["habit"] is h2
+        # expected streak for perfect daily habits: 4 weeks * 7 days = 28
+        expected_streak = factory.weeks * 7
+        assert result["streak"] == expected_streak
 
-    def test_longest_streak_overall_with_no_habits_returns_zero_and_none(self):
+        best_habits = result["habits"]
+
+        # Must return multiple habits
+        assert len(best_habits) > 1
+
+        # All winners must be daily habits
+        assert all(h.periodicity == "daily" for h in best_habits)
+
+        # Names of daily habits from factory
+        expected_daily_names = {
+            d["name"] for d in habit_dicts if d["periodicity"] == "daily"
+        }
+
+        # Names of daily habits returned by analytics
+        result_names = {h.name for h in best_habits}
+
+        assert result_names == expected_daily_names
+
+    def test_longest_streak_overall_with_no_habits_returns_zero_and_empty_list(self):
         habits: list[Habit] = []
 
         result = longest_streak_overall(habits)
 
         assert result["streak"] == 0
-        assert result["habit"] is None
+        assert result["habits"] == []
 
     def test_longest_streak_by_habit_returns_zero_for_unknown_id(self):
         base = self.base

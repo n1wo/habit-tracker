@@ -9,7 +9,7 @@ from habit_tracker.services.auth_manager import AuthManager
 from habit_tracker.fixtures.example_data import ExampleDataFactory
 import habit_tracker.ui.screens as screens
 
-from habit_tracker.ui.main_menu import main_menu
+from habit_tracker.ui.menus import main_menu
 from habit_tracker.ui.auth_flow import initial_password_setup, login_flow
 
 
