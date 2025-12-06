@@ -95,52 +95,70 @@ def test_example_factory_load_into_calls_storage_save_habit():
     assert ids == list(range(1, len(EXAMPLE_HABIT_DEFS) + 1))
 
 
-def test_missing_day_factory_removes_one_day_from_each_daily_habit():
+def test_missing_day_factory_introduces_gaps_for_some_daily_habits_but_not_all():
     """
-    Test that MissingDayDataFactory correctly introduces an imperfection
-    (a missing daily completion) while keeping weekly habits unchanged.
+    Test that MissingDayDataFactory correctly introduces imperfections
+    (missing daily completions) while keeping weekly habits unchanged.
 
     What we verify:
 
     • The imperfect dataset has the same number of habits as the perfect dataset.
-    • Daily habits have exactly ONE fewer completion than the perfect version.
+    • Some daily habits have exactly ONE fewer completion than the perfect version.
+    • At least one daily habit remains perfect (no days removed).
     • The removed date produces a gap > 1 day (a broken streak).
     • Weekly habits remain untouched.
-
-    This test ensures that imperfect datasets reliably simulate streak breaks.
     """
 
     # Build a baseline perfect dataset.
     base_factory = ExampleDataFactory(weeks=4)
     perfect = base_factory.build()
 
-    # Build the imperfect dataset that should have one removed day.
+    # Build the imperfect dataset that should have some missing days.
     imperfect_factory = MissingDayDataFactory(weeks=4)
     imperfect = imperfect_factory.build()
 
     # Number of habits must remain identical.
     assert len(perfect) == len(imperfect)
 
-    for h_perfect, h_imperfect in zip(perfect, imperfect):
+    daily_reduced = 0
+    daily_unchanged = 0
 
+    for h_perfect, h_imperfect in zip(perfect, imperfect):
         # Names and periodicity must not change.
         assert h_perfect["name"] == h_imperfect["name"]
         assert h_perfect["periodicity"] == h_imperfect["periodicity"]
 
         if h_perfect["periodicity"] == "daily":
-            # Imperfect daily habits must have one missing completion date.
-            assert len(h_imperfect["completion_dates"]) == len(h_perfect["completion_dates"]) - 1
+            perfect_dates = h_perfect["completion_dates"]
+            imperfect_dates = h_imperfect["completion_dates"]
 
-            # Sort dates and detect the gap introduced by deletion.
-            dates = sorted(h_imperfect["completion_dates"])
-            gaps = [
-                (dates[i + 1] - dates[i]).days
-                for i in range(len(dates) - 1)
-            ]
+            if len(imperfect_dates) == len(perfect_dates) - 1:
+                # This daily habit has had one day removed → "broken" streak
+                daily_reduced += 1
 
-            # At least one gap must be >= 2 days → confirms a break in streak.
-            assert max(gaps) >= 2
+                # Sort dates and detect the gap introduced by deletion.
+                dates = sorted(imperfect_dates)
+                gaps = [
+                    (dates[i + 1] - dates[i]).days
+                    for i in range(len(dates) - 1)
+                ]
+
+                # At least one gap must be >= 2 days → confirms a break in streak.
+                assert any(g >= 2 for g in gaps)
+
+            elif len(imperfect_dates) == len(perfect_dates):
+                # This daily habit remained perfect.
+                daily_unchanged += 1
+                assert imperfect_dates == perfect_dates
+
+            else:
+                # Any other difference would be unexpected.
+                assert False, "Daily habit has unexpected completion count"
 
         else:
             # Weekly habits should remain identical between perfect and imperfect sets.
             assert h_imperfect["completion_dates"] == h_perfect["completion_dates"]
+
+    # We expect at least one broken daily habit and at least one perfect one.
+    assert daily_reduced >= 1
+    assert daily_unchanged >= 1
