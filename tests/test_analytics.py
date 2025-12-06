@@ -260,64 +260,44 @@ class TestAnalytics:
 
         assert result == expected
 
+    def test_missing_day_factory_results_in_single_max_streak_winner(self):
+            """
+            Using MissingDayDataFactory, some daily habits are broken, but one
+            daily habit should still have the maximum streak (28 days).
+            """
+            factory = MissingDayDataFactory(start_date=self.base, weeks=4)
+            habit_dicts = factory.build()
 
-    def test_missing_day_factory_removes_one_day_from_each_daily_habit(self):
-        """
-        Test that MissingDayDataFactory correctly introduces imperfections:
+            # Turn dicts into Habit instances
+            habits: list[Habit] = []
+            for i, d in enumerate(habit_dicts, start=1):
+                habits.append(
+                    Habit(
+                        habit_id=i,
+                        name=d["name"],
+                        periodicity=d["periodicity"],
+                        created_date=d["created_date"],
+                        description=d["description"],
+                        completion_dates=d["completion_dates"],
+                    )
+                )
 
-        • The imperfect dataset has the same number of habits as the perfect dataset.
-        • Some daily habits have exactly ONE fewer completion than the perfect version.
-        • At least one daily habit keeps a perfect completion set.
-        • Weekly habits remain untouched.
-        """
+            result = longest_streak_overall(habits)
 
-        # Build a baseline perfect dataset.
-        base_factory = ExampleDataFactory(weeks=4)
-        perfect = base_factory.build()
+            expected_streak = factory.weeks * 7  # 28 for daily
+            assert result["streak"] == expected_streak
 
-        # Build the imperfect dataset that should have some missing days.
-        imperfect_factory = MissingDayDataFactory(weeks=4)
-        imperfect = imperfect_factory.build()
+            best_habits = result["habits"]
+            assert len(best_habits) == 1  # unique winner
 
-        # Number of habits must remain identical.
-        assert len(perfect) == len(imperfect)
+            winner = best_habits[0]
+            assert winner.periodicity == "daily"
 
-        daily_reduced = 0
-        daily_unchanged = 0
+            # At least one other daily habit has a shorter streak now
+            daily_habits = [h for h in habits if h.periodicity == "daily"]
+            assert len(daily_habits) >= 2
 
-        for h_perfect, h_imperfect in zip(perfect, imperfect):
-            # Names and periodicity must not change.
-            assert h_perfect["name"] == h_imperfect["name"]
-            assert h_perfect["periodicity"] == h_imperfect["periodicity"]
-
-            if h_perfect["periodicity"] == "daily":
-                perfect_dates = h_perfect["completion_dates"]
-                imperfect_dates = h_imperfect["completion_dates"]
-
-                if len(imperfect_dates) == len(perfect_dates) - 1:
-                    # This daily habit has had one day removed → "broken" streak
-                    daily_reduced += 1
-
-                    # Check there's now at least one gap > 1 day
-                    im_sorted = sorted(imperfect_dates)
-                    gaps = [
-                        (im_sorted[i + 1] - im_sorted[i]).days
-                        for i in range(len(im_sorted) - 1)
-                    ]
-                    assert any(g > 1 for g in gaps)
-
-                elif len(imperfect_dates) == len(perfect_dates):
-                    # This daily habit stayed perfect
-                    daily_unchanged += 1
-                    assert imperfect_dates == perfect_dates
-
-                else:
-                    # Any other difference would be unexpected
-                    assert False, "Daily habit has unexpected completion count"
-            else:
-                # Weekly habits should remain untouched
-                assert h_imperfect["completion_dates"] == h_perfect["completion_dates"]
-
-        # We expect at least one broken daily habit and at least one perfect one
-        assert daily_reduced >= 1
-        assert daily_unchanged >= 1
+            shorter_daily_exists = any(
+                calculate_streak(h) < expected_streak for h in daily_habits if h is not winner
+            )
+            assert shorter_daily_exists

@@ -162,3 +162,64 @@ def test_missing_day_factory_introduces_gaps_for_some_daily_habits_but_not_all()
     # We expect at least one broken daily habit and at least one perfect one.
     assert daily_reduced >= 1
     assert daily_unchanged >= 1
+
+def test_missing_day_factory_removes_one_day_from_each_daily_habit():
+    """
+    Test that MissingDayDataFactory correctly introduces imperfections:
+
+    • The imperfect dataset has the same number of habits as the perfect dataset.
+    • Some daily habits have exactly ONE fewer completion than the perfect version.
+    • At least one daily habit keeps a perfect completion set.
+    • Weekly habits remain untouched.
+    """
+
+    # Build a baseline perfect dataset.
+    base_factory = ExampleDataFactory(weeks=4)
+    perfect = base_factory.build()
+
+    # Build the imperfect dataset that should have some missing days.
+    imperfect_factory = MissingDayDataFactory(weeks=4)
+    imperfect = imperfect_factory.build()
+
+    # Number of habits must remain identical.
+    assert len(perfect) == len(imperfect)
+
+    daily_reduced = 0
+    daily_unchanged = 0
+
+    for h_perfect, h_imperfect in zip(perfect, imperfect):
+        # Names and periodicity must not change.
+        assert h_perfect["name"] == h_imperfect["name"]
+        assert h_perfect["periodicity"] == h_imperfect["periodicity"]
+
+        if h_perfect["periodicity"] == "daily":
+            perfect_dates = h_perfect["completion_dates"]
+            imperfect_dates = h_imperfect["completion_dates"]
+
+            if len(imperfect_dates) == len(perfect_dates) - 1:
+                # This daily habit has had one day removed → "broken" streak
+                daily_reduced += 1
+
+                # Check there's now at least one gap > 1 day
+                im_sorted = sorted(imperfect_dates)
+                gaps = [
+                    (im_sorted[i + 1] - im_sorted[i]).days
+                    for i in range(len(im_sorted) - 1)
+                ]
+                assert any(g > 1 for g in gaps)
+
+            elif len(imperfect_dates) == len(perfect_dates):
+                # This daily habit stayed perfect
+                daily_unchanged += 1
+                assert imperfect_dates == perfect_dates
+
+            else:
+                # Any other difference would be unexpected
+                assert False, "Daily habit has unexpected completion count"
+        else:
+            # Weekly habits should remain untouched
+            assert h_imperfect["completion_dates"] == h_perfect["completion_dates"]
+
+    # We expect at least one broken daily habit and at least one perfect one
+    assert daily_reduced >= 1
+    assert daily_unchanged >= 1
