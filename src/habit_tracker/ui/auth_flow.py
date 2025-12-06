@@ -1,6 +1,5 @@
 from __future__ import annotations
 import questionary
-import sys
 
 from habit_tracker.services.auth_manager import AuthManager, AuthError
 
