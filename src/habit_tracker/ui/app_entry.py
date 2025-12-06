@@ -7,6 +7,7 @@ from habit_tracker.storage import SQLStore
 from habit_tracker.services import HabitManager
 from habit_tracker.services.auth_manager import AuthManager
 from habit_tracker.fixtures.example_data import ExampleDataFactory
+import habit_tracker.ui.screens as screens
 
 from habit_tracker.ui.main_menu import main_menu
 from habit_tracker.ui.auth_flow import initial_password_setup, login_flow
@@ -71,6 +72,7 @@ def run_app() -> None:
       • When the session returns (user exited main menu), show the menu again.
     """
     while True:
+        screens.welcome_banner()
         mode = questionary.select(
             "How would you like to use the Habit Tracker today?",
             choices=[
