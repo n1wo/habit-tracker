@@ -3,6 +3,7 @@ import questionary
 
 from habit_tracker.services.auth_manager import AuthManager
 
+
 def initial_password_setup(auth: AuthManager) -> bool:
     """Guide user through first-run password creation."""
     print("\n🔐 First-time setup — create your master password.\n")
@@ -25,6 +26,28 @@ def initial_password_setup(auth: AuthManager) -> bool:
         if pw1 != pw2:
             print("⚠️ Passwords do not match.\n")
             continue
+
+        # --- NIST-style strength check ---------------------------------
+        report = auth.check_password_strength(pw1)
+
+        if not report["ok"]:
+            print("\n❌ Password is too weak:")
+            for msg in report["errors"]:
+                print(f"  • {msg}")
+            if report["suggestions"]:
+                print("\n💡 Suggestions:")
+                for msg in report["suggestions"]:
+                    print(f"  • {msg}")
+            print()  # blank line before re-prompt
+            continue
+        # ---------------------------------------------------------------
+
+        # Optional: still show suggestions even if it's acceptable
+        if report["suggestions"]:
+            print("\n💡 Your password is acceptable, but you could improve it:")
+            for msg in report["suggestions"]:
+                print(f"  • {msg}")
+            print()
 
         auth.set_password(pw1)
         print("\n✅ Password created successfully!\n")
