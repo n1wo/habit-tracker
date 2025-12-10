@@ -1,5 +1,6 @@
 import questionary
 from habit_tracker.services import HabitService
+from questionary import Choice
 from habit_tracker.analytics import (
     list_all_habits,
     list_habits_by_periodicity,
@@ -73,19 +74,67 @@ def remove_habit(service: HabitService):
 
 
 def view_habits(service: HabitService):
-    """View all existing habits."""
+    """View all existing habits and inspect completion history for a chosen habit."""
     habits = service.list_habits()
     if not habits:
         print("\n📋 No habits yet.\n")
         return
 
+    # Use analytics helper (pure, functional) to get a list copy
     all_habits = list_all_habits(habits)
-    print("\n📋 All habits:")
-    for h in all_habits:
-        hid = getattr(h, "habit_id", "?")
-        period = getattr(h, "periodicity", "?")
-        print(f" • {hid} {h.name} {period}")
-    print()
+
+    choices = [
+        Choice(
+            title=f"{h.habit_id}: {h.name} ({h.periodicity})",
+            value=h.habit_id,
+        )
+        for h in all_habits
+    ]
+    # Cancel option with a special sentinel value
+    choices.append(Choice("Cancel", value="__CANCEL__"))
+
+    selected_id = questionary.select(
+        "\n📋 All habits\nWhich habit do you want to inspect?",
+        choices=choices,
+        qmark="",
+    ).ask()
+
+    # Handle cancel or aborted prompt
+    if selected_id is None or selected_id == "__CANCEL__":
+        print("\n🔙 Returning to analytics menu...\n")
+        return
+
+    # Get the selected habit from the list
+    habit = next((h for h in all_habits if h.habit_id == selected_id), None)
+    if habit is None:
+        print("❌ Error: Habit not found.")
+        return
+
+    # ------------------------------------------------------------------
+    # 3) Show detail view: info, completion list, and streak
+    # ------------------------------------------------------------------
+    print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(f"📌 Habit: {habit.name}")
+    print(f"🆔 ID: {habit.habit_id}")
+    print(f"🕒 Periodicity: {habit.periodicity}")
+
+    created = getattr(habit, "created_date", None)
+    if created is not None:
+        print(f"📅 Created: {created.strftime('%Y-%m-%d %H:%M')}")
+
+    streak = analytics_longest_streak_by_habit(all_habits, habit.habit_id)
+    print(f"🔥 Longest streak: {streak} period(s)")
+
+    print("\n✅ Completion dates:")
+    completion_dates = getattr(habit, "completion_dates", None)
+
+    if not completion_dates:
+        print("   — No completions yet —")
+    else:
+        for dt in sorted(completion_dates):
+            print(f"   • {dt.strftime('%Y-%m-%d %H:%M')}")
+
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
 
 def log_completion(service: HabitService):
