@@ -44,7 +44,6 @@ def main_menu(service: HabitService):
             choices=[
                 "Add Habit",
                 "Remove Habit",
-                "View Habits",
                 "Log completion",
                 "Analytics",
                 "Exit",
@@ -54,8 +53,6 @@ def main_menu(service: HabitService):
             actions.add_habit(service)
         elif choice == "Remove Habit":
             actions.remove_habit(service)
-        elif choice == "View Habits":
-            actions.view_habits(service)
         elif choice == "Log completion":
             actions.log_completion(service)
         elif choice == "Analytics":
