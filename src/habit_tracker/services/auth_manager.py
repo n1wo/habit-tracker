@@ -75,6 +75,80 @@ class AuthManager:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+
+    def check_password_strength(self, password: str) -> dict[str, object]:
+        """
+        Check password strength using NIST-inspired rules.
+
+        Returns:
+            {
+                "ok": bool,           # True if it passes hard requirements
+                "errors": list[str],  # Things that MUST be fixed
+                "suggestions": list[str],  # Optional improvements
+            }
+        """
+        errors: list[str] = []
+        suggestions: list[str] = []
+
+        # 1) Hard minimum length (NIST: at least 8 chars)
+        if len(password) < 8:
+            errors.append("Password must be at least 8 characters long.")
+
+        # 2) Not all whitespace
+        if password.strip() == "":
+            errors.append("Password cannot consist of only spaces or whitespace.")
+
+        # 3) Very small blacklist for obvious/common passwords
+        lowered = password.lower()
+        common_passwords = {
+            "password",
+            "12345678",
+            "123456789",
+            "qwerty",
+            "iloveyou",
+            "admin",
+            "welcome",
+        }
+        if lowered in common_passwords:
+            errors.append("Password is too common and easy to guess.")
+
+        # 4) Character category checks (NIST discourages *requiring* this,
+        #    but we use it here as guidance with suggestions + a mild rule).
+        has_lower = any(c.islower() for c in password)
+        has_upper = any(c.isupper() for c in password)
+        has_digit = any(c.isdigit() for c in password)
+        has_symbol = any(not c.isalnum() for c in password)
+
+        categories = sum((has_lower, has_upper, has_digit, has_symbol))
+
+        # Require at least 3 of 4 categories for this project
+        if categories < 3:
+            if not has_lower:
+                errors.append("Add at least one lowercase letter (a–z).")
+            if not has_upper:
+                errors.append("Add at least one uppercase letter (A–Z).")
+            if not has_digit:
+                errors.append("Add at least one number (0–9).")
+            if not has_symbol:
+                errors.append(
+                    "Add at least one special character (e.g. ! ? # $ % &)."
+                )
+
+        # 5) Soft recommendation: longer is better
+        if 8 <= len(password) < 12:
+            suggestions.append(
+                "Consider using at least 12 characters for stronger security."
+            )
+
+        # Overall result: ok if there are no hard errors.
+        ok = len(errors) == 0
+
+        return {
+            "ok": ok,
+            "errors": errors,
+            "suggestions": suggestions,
+        }
+
     def is_first_run(self) -> bool:
         """Return True if no user is stored yet."""
         user = self._storage.load_user()
