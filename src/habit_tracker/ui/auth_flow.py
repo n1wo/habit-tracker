@@ -1,10 +1,10 @@
 from __future__ import annotations
 import questionary
 
-from habit_tracker.services.auth_manager import AuthManager
+from habit_tracker.services.auth_service import AuthService
 
 
-def initial_password_setup(auth: AuthManager) -> bool:
+def initial_password_setup(auth: AuthService) -> bool:
     """Guide user through first-run password creation."""
     print("\n🔐 First-time setup — create your master password.\n")
 
@@ -54,7 +54,7 @@ def initial_password_setup(auth: AuthManager) -> bool:
         return True
 
 
-def login_flow(auth: AuthManager, attempts: int = 3) -> bool:
+def login_flow(auth: AuthService, attempts: int = 3) -> bool:
     """Prompt user to log in."""
     print("\n🔐 Please log in.\n")
 

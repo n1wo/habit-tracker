@@ -6,8 +6,9 @@ import hmac
 import os
 from typing import Optional
 
-from habit_tracker.models import User          #
-from habit_tracker.storage import Storage     
+from habit_tracker.models import User
+from habit_tracker.storage import Storage
+from habit_tracker.services.auth_service import AuthService, PasswordStrengthReport
 
 
 class AuthError(Exception):
@@ -15,7 +16,7 @@ class AuthError(Exception):
     pass
 
 
-class AuthManager:
+class AuthManager(AuthService):
     """Handles password setup, login, and password changes.
 
     All hashing and salt handling happens here. The User entity
