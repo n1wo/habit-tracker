@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from typing import Optional
+
 from collections.abc import Iterable
 from typing import Any
 
@@ -64,6 +66,92 @@ def _longest_weekly_streak(dates: list[date]) -> int:
 
     return longest
 
+# ---------------------------
+# Current streak helpers
+# ---------------------------
+def _current_daily_streak(dates: list[date], *, today: date) -> int:
+    """
+    Current daily streak as of `today`.
+
+    Rules:
+    - If completed today: streak ends at today.
+    - If not completed today but completed yesterday: streak ends at yesterday
+      (still "alive" until you miss today).
+    - Otherwise: 0
+    """
+    if not dates:
+        return 0
+
+    completed = set(dates)
+
+    # Decide where the streak "ends" (the latest day that still keeps it alive).
+    if today in completed:
+        end = today
+    elif (today - timedelta(days=1)) in completed:
+        end = today - timedelta(days=1)
+    else:
+        return 0
+
+    # Count backwards day-by-day.
+    streak = 0
+    cur = end
+    while cur in completed:
+        streak += 1
+        cur -= timedelta(days=1)
+
+    return streak
+
+
+def _iso_week_key(d: date) -> tuple[int, int]:
+    iso = d.isocalendar()
+    return (iso.year, iso.week)
+
+
+def _prev_iso_week(year: int, week: int) -> tuple[int, int]:
+    """
+    Return the previous ISO week key (year, week), handling year rollovers.
+    """
+    # Monday of the given ISO week
+    monday = date.fromisocalendar(year, week, 1)
+    prev_monday = monday - timedelta(days=7)
+    iso = prev_monday.isocalendar()
+    return (iso.year, iso.week)
+
+
+def _current_weekly_streak(dates: list[date], *, today: date) -> int:
+    """
+    Current weekly streak as of `today` (ISO weeks).
+
+    Rules:
+    - If completed in this ISO week: streak ends at this week.
+    - If not completed this week but completed last ISO week: streak ends at last week
+      (still "alive" until you miss this week).
+    - Otherwise: 0
+    """
+    if not dates:
+        return 0
+
+    completed_weeks = {_iso_week_key(d) for d in dates}
+
+    this_week = _iso_week_key(today)
+    last_week = _prev_iso_week(*this_week)
+
+    if this_week in completed_weeks:
+        end = this_week
+    elif last_week in completed_weeks:
+        end = last_week
+    else:
+        return 0
+
+    # Count backwards week-by-week.
+    streak = 0
+    cur = end
+    while cur in completed_weeks:
+        streak += 1
+        cur = _prev_iso_week(*cur)
+
+    return streak
+
 # ----------------------------------------------------------------------
 # Public streak API
 # ----------------------------------------------------------------------
@@ -116,3 +204,21 @@ def longest_streak_by_habit(habits: list, habit_id: int) -> int:
     if habit is None:
         return 0
     return calculate_streak(habit)
+
+def calculate_current_streak(habit: Habit, *, today: Optional[date] = None) -> int:
+    """
+    Current streak for a habit based on its periodicity, relative to `today`.
+    `today` is injectable for deterministic tests.
+    """
+    if not habit.completion_dates:
+        return 0
+
+    today = today or date.today()
+
+    # Unique sorted dates (strip times)
+    dates = sorted({dt.date() for dt in habit.completion_dates})
+
+    if habit.periodicity.lower() == "weekly":
+        return _current_weekly_streak(dates, today=today)
+    else:
+        return _current_daily_streak(dates, today=today)
