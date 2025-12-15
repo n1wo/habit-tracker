@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from habit_tracker.models import Habit
 from habit_tracker.fixtures.example_data import ExampleDataFactory
@@ -9,6 +9,7 @@ from habit_tracker.analytics import (
     calculate_streak,
     longest_streak_overall,
     longest_streak_by_habit,
+    calculate_current_streak,
 )
 
 
@@ -301,3 +302,122 @@ class TestAnalytics:
                 calculate_streak(h) < expected_streak for h in daily_habits if h is not winner
             )
             assert shorter_daily_exists
+
+    # ------------------------------------------------------------------
+    # calculate_current_streak – daily habits
+    # ------------------------------------------------------------------
+    def test_current_streak_daily_no_completions_is_zero(self):
+        h = self._make_habit(1, "Read", "daily", completion_dates=[])
+        today = date(2025, 1, 10)
+
+        assert calculate_current_streak(h, today=today) == 0
+
+    def test_current_streak_daily_counts_back_from_today_if_completed_today(self):
+        # streak: Jan 8, 9, 10 (today)
+        completions = [
+            datetime(2025, 1, 8, 8, 0, 0),
+            datetime(2025, 1, 9, 8, 0, 0),
+            datetime(2025, 1, 10, 8, 0, 0),
+        ]
+        h = self._make_habit(1, "Read", "daily", completion_dates=completions)
+        today = date(2025, 1, 10)
+
+        assert calculate_current_streak(h, today=today) == 3
+
+    def test_current_streak_daily_counts_back_from_yesterday_if_not_done_today(self):
+        # completed up through yesterday, but not today -> still "alive"
+        # streak: Jan 7, 8, 9 (yesterday)
+        completions = [
+            datetime(2025, 1, 7, 8, 0, 0),
+            datetime(2025, 1, 8, 8, 0, 0),
+            datetime(2025, 1, 9, 8, 0, 0),
+        ]
+        h = self._make_habit(1, "Read", "daily", completion_dates=completions)
+        today = date(2025, 1, 10)
+
+        assert calculate_current_streak(h, today=today) == 3
+
+    def test_current_streak_daily_is_zero_if_missed_yesterday_and_today(self):
+        completions = [
+            datetime(2025, 1, 7, 8, 0, 0),
+            datetime(2025, 1, 8, 8, 0, 0),
+        ]
+        h = self._make_habit(1, "Read", "daily", completion_dates=completions)
+        today = date(2025, 1, 10)  # last completion was Jan 8 (2 days ago)
+
+        assert calculate_current_streak(h, today=today) == 0
+
+    def test_current_streak_daily_multiple_completions_same_day_collapsed(self):
+        completions = [
+            datetime(2025, 1, 10, 8, 0, 0),
+            datetime(2025, 1, 10, 12, 0, 0),
+            datetime(2025, 1, 10, 20, 0, 0),
+        ]
+        h = self._make_habit(1, "Read", "daily", completion_dates=completions)
+        today = date(2025, 1, 10)
+
+        assert calculate_current_streak(h, today=today) == 1
+
+    def test_current_streak_daily_ignores_old_longest_if_current_is_broken(self):
+        # Had a long streak earlier, but current is broken -> 0
+        completions = [
+            datetime(2025, 1, 1, 8, 0, 0),
+            datetime(2025, 1, 2, 8, 0, 0),
+            datetime(2025, 1, 3, 8, 0, 0),
+        ]
+        h = self._make_habit(1, "Read", "daily", completion_dates=completions)
+        today = date(2025, 1, 10)
+
+        assert calculate_current_streak(h, today=today) == 0
+
+    # ------------------------------------------------------------------
+    # calculate_current_streak – weekly habits (ISO weeks)
+    # ------------------------------------------------------------------
+    def test_current_streak_weekly_no_completions_is_zero(self):
+        h = self._make_habit(1, "Workout", "weekly", completion_dates=[])
+        today = date(2025, 1, 15)
+
+        assert calculate_current_streak(h, today=today) == 0
+
+    def test_current_streak_weekly_counts_if_completed_this_week(self):
+        # ISO weeks: Jan 6 (wk2), Jan 13 (wk3), Jan 15 is also wk3
+        completions = [
+            datetime(2025, 1, 6, 8, 0, 0),   # week 2
+            datetime(2025, 1, 13, 8, 0, 0),  # week 3
+        ]
+        h = self._make_habit(1, "Workout", "weekly", completion_dates=completions)
+        today = date(2025, 1, 15)  # week 3
+
+        assert calculate_current_streak(h, today=today) == 2
+
+    def test_current_streak_weekly_counts_back_from_last_week_if_not_done_this_week(self):
+        # Completed last week, not this week yet -> still "alive"
+        # today is week 4, last completion week 3 => streak length 2 (weeks 2-3)
+        completions = [
+            datetime(2025, 1, 6, 8, 0, 0),   # week 2
+            datetime(2025, 1, 13, 8, 0, 0),  # week 3
+        ]
+        h = self._make_habit(1, "Workout", "weekly", completion_dates=completions)
+        today = date(2025, 1, 22)  # week 4
+
+        assert calculate_current_streak(h, today=today) == 2
+
+    def test_current_streak_weekly_is_zero_if_missed_last_week_and_this_week(self):
+        # last completion was week 2; today in week 4 -> broken
+        completions = [
+            datetime(2025, 1, 6, 8, 0, 0),  # week 2
+        ]
+        h = self._make_habit(1, "Workout", "weekly", completion_dates=completions)
+        today = date(2025, 1, 22)  # week 4 (missed week 3)
+
+        assert calculate_current_streak(h, today=today) == 0
+
+    def test_current_streak_weekly_multiple_completions_same_week_collapsed(self):
+        completions = [
+            datetime(2025, 1, 13, 8, 0, 0),   # Monday (week 3)
+            datetime(2025, 1, 15, 8, 0, 0),   # Wednesday (week 3)
+        ]
+        h = self._make_habit(1, "Workout", "weekly", completion_dates=completions)
+        today = date(2025, 1, 15)
+
+        assert calculate_current_streak(h, today=today) == 1

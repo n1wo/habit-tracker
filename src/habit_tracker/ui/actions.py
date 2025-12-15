@@ -6,6 +6,7 @@ from habit_tracker.analytics import (
     list_habits_by_periodicity,
     longest_streak_overall as analytics_longest_streak_overall,
     longest_streak_by_habit as analytics_longest_streak_by_habit,
+    calculate_current_streak,
 )
 
 def add_habit(service: HabitService):
@@ -124,6 +125,9 @@ def view_habits(service: HabitService):
 
     streak = analytics_longest_streak_by_habit(all_habits, habit.habit_id)
     print(f"🔥 Longest streak: {streak} period(s)")
+
+    current = calculate_current_streak(habit)
+    print(f"⚡ Current streak: {current} period(s)")
 
     print("\n✅ Completion dates:")
     completion_dates = getattr(habit, "completion_dates", None)
