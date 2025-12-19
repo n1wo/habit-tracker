@@ -1,4 +1,4 @@
-from habit_tracker.ui.app_entry import run_app
+from habit_tracker.app_entry import run_app
 
 
 def main() -> None:

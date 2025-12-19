@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import sys
-import questionary
 
 from habit_tracker.storage import SQLStore
 from habit_tracker.services import HabitManager
 from habit_tracker.services.auth_manager import AuthManager
 from habit_tracker.fixtures.example_data import ExampleDataFactory
 import habit_tracker.ui.screens as screens
+from habit_tracker.ui.mode_select import choose_mode
 
 from habit_tracker.ui.menus import main_menu
 from habit_tracker.ui.auth_flow import initial_password_setup, login_flow
@@ -64,7 +64,7 @@ def _run_real_session() -> None:
 
 def run_app() -> None:
     """
-    Top-level UI entry point.
+    Top-level application entry point (composition root).
 
     Loop:
       • Ask user if they want real mode, demo mode, or exit.
@@ -73,14 +73,7 @@ def run_app() -> None:
     """
     while True:
         screens.welcome_banner()
-        mode = questionary.select(
-            "How would you like to use the Habit Tracker today?",
-            choices=[
-                "🔐 Log into my habit tracker (real data)",
-                "🧪 Try demo with example data (resets every time)",
-                "🚪 Exit application",
-            ],
-        ).ask()
+        mode = choose_mode()
 
         # User aborted with ESC / Ctrl+C or chose explicit Exit.
         if mode is None or mode.startswith("🚪"):
