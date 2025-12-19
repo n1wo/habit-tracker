@@ -59,6 +59,8 @@ def _run_real_session() -> None:
             return  # back to mode selection
 
     manager = HabitManager(storage)
+    manager.seed_predefined_habits() 
+    
     main_menu(manager)
 
 
