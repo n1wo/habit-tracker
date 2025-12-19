@@ -166,3 +166,26 @@ class HabitManager(HabitService):
         """Return all stored habits."""
         return self.habits
     
+    def seed_predefined_habits(self, force: bool = False) -> int:
+        """
+        Seed the application with predefined habits.
+
+        • Runs only once by default (skips if habits already exist)
+        • Uses the standard add_habit() API
+        • Returns number of habits created
+        """
+        from habit_tracker.fixtures.predefined_habits import PREDEFINED_HABITS
+
+        if not force and self.habits:
+            return 0
+
+        count = 0
+        for h in PREDEFINED_HABITS:
+            self.add_habit(
+                name=h["name"],
+                periodicity=h["periodicity"],
+                description=h.get("description", ""),
+            )
+            count += 1
+
+        return count
