@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from habit_tracker.services import HabitManager
+from habit_tracker.fixtures.predefined_habits import PREDEFINED_HABITS
 from habit_tracker.fixtures.example_data import ExampleDataFactory, EXAMPLE_HABIT_DEFS
 
 class TestHabitManager:
@@ -227,3 +228,96 @@ class TestHabitManagerWithExampleData:
 
             # The manager must preserve exactly the same timestamps.
             assert manager_dates == example_dates
+
+class TestHabitManagerPredefinedHabits:
+    """
+    Unit tests for seeding predefined habits into HabitManager.
+
+    These tests verify that:
+    • The predefined habit fixtures can be loaded into HabitManager.
+    • Seeding uses the standard add_habit() API (no special cases).
+    • Seeding is idempotent by default (no duplicate habits on re-run).
+    • Optional forced seeding behaves as expected.
+
+    Persistence is intentionally NOT tested here; all tests use an
+    in-memory HabitManager (storage=None).
+    """
+
+    def setup_method(self):
+        """
+        Create a fresh in-memory HabitManager before each test.
+
+        Using storage=None ensures that:
+        • No database or filesystem is involved.
+        • Tests remain fast and deterministic.
+        • We only validate HabitManager behavior, not persistence.
+        """
+        self.mgr = HabitManager(storage=None)
+
+    def test_seed_predefined_habits_creates_expected_habits(self):
+        """
+        Test that seeding predefined habits creates the expected number
+        of Habit instances with correct attributes.
+
+        Verifies:
+        • seed_predefined_habits() returns the number of created habits.
+        • list_habits() contains exactly one Habit per predefined fixture.
+        • Habit attributes (name, periodicity, description) match the fixture data.
+        """
+        created = self.mgr.seed_predefined_habits()
+
+        # Correct number of habits created
+        assert created == len(PREDEFINED_HABITS)
+
+        habits = self.mgr.list_habits()
+        assert len(habits) == len(PREDEFINED_HABITS)
+
+        # Compare habits by name to avoid ID ordering assumptions
+        manager_by_name = {h.name: h for h in habits}
+
+        for hdef in PREDEFINED_HABITS:
+            assert hdef["name"] in manager_by_name
+
+            habit = manager_by_name[hdef["name"]]
+            assert habit.periodicity == hdef["periodicity"]
+
+            # Description may be optional or empty
+            expected_desc = hdef.get("description", "") or ""
+            actual_desc = habit.description or ""
+            assert actual_desc == expected_desc
+
+    def test_seed_predefined_habits_is_idempotent(self):
+        """
+        Test that seeding predefined habits is idempotent by default.
+
+        Running seed_predefined_habits() multiple times without force=True
+        should:
+        • Only create habits on the first call.
+        • Return 0 on subsequent calls.
+        • Leave the total habit count unchanged.
+        """
+        first = self.mgr.seed_predefined_habits()
+        second = self.mgr.seed_predefined_habits()
+
+        assert first == len(PREDEFINED_HABITS)
+        assert second == 0
+        assert len(self.mgr.list_habits()) == len(PREDEFINED_HABITS)
+
+    def test_seed_predefined_habits_force_reseeds(self):
+        """
+        Test that force=True allows predefined habits to be re-seeded.
+
+        This behavior is useful for:
+        • Demo resets
+        • Development/testing scenarios
+
+        When force=True:
+        • Predefined habits are added again even if they already exist.
+        • The total number of habits increases accordingly.
+        """
+        self.mgr.seed_predefined_habits()
+
+        created = self.mgr.seed_predefined_habits(force=True)
+
+        assert created == len(PREDEFINED_HABITS)
+        assert len(self.mgr.list_habits()) == 2 * len(PREDEFINED_HABITS)
