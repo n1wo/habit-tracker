@@ -119,6 +119,12 @@ def view_habits(service: HabitService):
     print(f"🆔 ID: {habit.habit_id}")
     print(f"🕒 Periodicity: {habit.periodicity}")
 
+    description = getattr(habit, "description", None)
+    if description:
+        print(f"📝 Description: {description}")
+    else:
+        print("📝 Description: —")
+
     created = getattr(habit, "created_date", None)
     if created is not None:
         print(f"📅 Created: {created.strftime('%Y-%m-%d %H:%M')}")
