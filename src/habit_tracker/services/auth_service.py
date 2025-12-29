@@ -1,4 +1,10 @@
-from __future__ import annotations
+"""
+Authentication service interface for the Habit Tracker app.
+
+Defines the required API for authentication and password management.
+Concrete implementations (e.g. AuthManager) must implement all methods
+defined in this interface.
+"""
 
 from abc import ABC, abstractmethod
 from typing import Optional, TypedDict
@@ -7,13 +13,21 @@ from habit_tracker.models import User
 
 
 class PasswordStrengthReport(TypedDict):
+    """
+    Structured result for password strength evaluation.
+
+    Attributes:
+        ok: True if the password meets all hard requirements.
+        errors: List of issues that must be fixed.
+        suggestions: Optional improvements for stronger passwords.
+    """
     ok: bool
     errors: list[str]
     suggestions: list[str]
 
 
 class AuthService(ABC):
-    """Interface for authentication and password management."""
+    """Abstract base class for authentication and password management."""
 
     @abstractmethod
     def is_first_run(self) -> bool:
@@ -42,5 +56,5 @@ class AuthService(ABC):
 
     @abstractmethod
     def check_password_strength(self, password: str) -> PasswordStrengthReport:
-        """Return a NIST-style strength report for the given password."""
+        """Return a structured password strength report."""
         raise NotImplementedError
