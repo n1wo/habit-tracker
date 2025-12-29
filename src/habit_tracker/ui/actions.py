@@ -1,6 +1,17 @@
+"""
+CLI helper functions for interacting with habits and analytics.
+
+This module contains only user I/O and menu logic (questionary prompts + printing).
+All business logic is delegated to the HabitService. Analytics are computed via
+pure functions in habit_tracker.analytics.
+"""
+
+from typing import Optional
+
 import questionary
-from habit_tracker.services import HabitService
 from questionary import Choice
+
+from habit_tracker.services import HabitService
 from habit_tracker.analytics import (
     list_all_habits,
     list_habits_by_periodicity,
@@ -9,8 +20,12 @@ from habit_tracker.analytics import (
     calculate_current_streak,
 )
 
-def add_habit(service: HabitService):
-    """Add a new habit via CLI prompts."""
+
+# ---------------------------------------------------------------------------
+# Habit actions
+# ---------------------------------------------------------------------------
+def add_habit(service: HabitService) -> None:
+    """Prompt the user for habit data and create a new habit."""
     name = questionary.text("Enter habit name:").ask()
     if not name:
         print("No name entered.")
@@ -24,64 +39,56 @@ def add_habit(service: HabitService):
         print("No periodicity selected.")
         return
 
-    # Map UI -> backend format ("daily" | "weekly")
-    period_val = periodicity.lower()
-
     description = questionary.text("Enter description (optional):").ask()
 
     habit = service.add_habit(
         name=name,
-        periodicity=period_val,
+        periodicity=periodicity.lower(),
         description=description or None,
     )
 
     print(
-        f"\n✅ Habit added: "
-        f"(id={getattr(habit, 'habit_id', '?')}) {habit.name} [{period_val}] "
+        f"\n✅ Habit added: (id={habit.habit_id}) {habit.name} [{habit.periodicity}] "
         f"- {habit.description or 'No description'}\n"
     )
 
 
-def remove_habit(service: HabitService):
-    """Remove an existing habit via CLI prompts."""
+def remove_habit(service: HabitService) -> None:
+    """Prompt the user to select and remove an existing habit."""
     habits = service.list_habits()
     if not habits:
         print("\n📋 No habits to remove.\n")
         return
 
-    choices = [f"(id={getattr(h, 'habit_id', '?')}) {h.name}" for h in habits]
-    choice = questionary.select(
+    choices = [
+        Choice(title=f"(id={h.habit_id}) {h.name}", value=h.habit_id)
+        for h in habits
+    ]
+    choices.append(Choice("Cancel", value=None))
+
+    selected_id: Optional[int] = questionary.select(
         "Select a habit to remove:",
         choices=choices,
     ).ask()
 
-    if not choice:
-        print("No habit selected.")
+    if selected_id is None:
+        print("\n🔙 Cancelled.\n")
         return
 
-    # Extract habit_id from the selected choice
-    habit_id_str = choice.split(")")[0].strip("(id=")
-    try:
-        habit_id = int(habit_id_str)
-    except ValueError:
-        print("Invalid habit ID.")
-        return
-
-    success = service.remove_habit(habit_id)
+    success = service.remove_habit(selected_id)
     if success:
-        print(f"\n🗑️ Habit removed: {choice}\n")
+        print(f"\n🗑️ Habit removed: (id={selected_id})\n")
     else:
         print("\n❌ Habit not found.\n")
 
 
-def view_habits(service: HabitService):
-    """View all existing habits and inspect completion history for a chosen habit."""
+def view_habits(service: HabitService) -> None:
+    """View all habits and inspect completion history for a chosen habit."""
     habits = service.list_habits()
     if not habits:
         print("\n📋 No habits yet.\n")
         return
 
-    # Use analytics helper (pure, functional) to get a list copy
     all_habits = list_all_habits(habits)
 
     choices = [
@@ -91,43 +98,31 @@ def view_habits(service: HabitService):
         )
         for h in all_habits
     ]
-    # Cancel option with a special sentinel value
-    choices.append(Choice("Cancel", value="__CANCEL__"))
+    choices.append(Choice("Cancel", value=None))
 
-    selected_id = questionary.select(
+    selected_id: Optional[int] = questionary.select(
         "\n📋 All habits\nWhich habit do you want to inspect?",
         choices=choices,
         qmark="",
     ).ask()
 
-    # Handle cancel or aborted prompt
-    if selected_id is None or selected_id == "__CANCEL__":
-        print("\n🔙 Returning to analytics menu...\n")
+    if selected_id is None:
+        print("\n🔙 Returning...\n")
         return
 
-    # Get the selected habit from the list
     habit = next((h for h in all_habits if h.habit_id == selected_id), None)
     if habit is None:
         print("❌ Error: Habit not found.")
         return
 
-    # ------------------------------------------------------------------
-    # 3) Show detail view: info, completion list, and streak
-    # ------------------------------------------------------------------
     print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print(f"📌 Habit: {habit.name}")
     print(f"🆔 ID: {habit.habit_id}")
     print(f"🕒 Periodicity: {habit.periodicity}")
+    print(f"📝 Description: {habit.description or '—'}")
 
-    description = getattr(habit, "description", None)
-    if description:
-        print(f"📝 Description: {description}")
-    else:
-        print("📝 Description: —")
-
-    created = getattr(habit, "created_date", None)
-    if created is not None:
-        print(f"📅 Created: {created.strftime('%Y-%m-%d %H:%M')}")
+    if habit.created_date is not None:
+        print(f"📅 Created: {habit.created_date.strftime('%Y-%m-%d %H:%M')}")
 
     streak = analytics_longest_streak_by_habit(all_habits, habit.habit_id)
     print(f"🔥 Longest streak: {streak} period(s)")
@@ -136,89 +131,84 @@ def view_habits(service: HabitService):
     print(f"⚡ Current streak: {current} period(s)")
 
     print("\n✅ Completion dates:")
-    completion_dates = getattr(habit, "completion_dates", None)
-
-    if not completion_dates:
+    if not habit.completion_dates:
         print("   — No completions yet —")
     else:
-        for dt in sorted(completion_dates):
+        for dt in sorted(habit.completion_dates):
             print(f"   • {dt.strftime('%Y-%m-%d %H:%M')}")
 
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
 
-def log_completion(service: HabitService):
-    """Log a completion for an existing habit via CLI prompts."""
+def log_completion(service: HabitService) -> None:
+    """Prompt the user to select a habit and log a completion event."""
     habits = service.list_habits()
     if not habits:
         print("\n📋 No habits to log.\n")
         return
 
-    choices = [f"(id={getattr(h, 'habit_id', '?')}) {h.name}" for h in habits]
-    choice = questionary.select(
+    choices = [
+        Choice(title=f"(id={h.habit_id}) {h.name}", value=h.habit_id)
+        for h in habits
+    ]
+    choices.append(Choice("Cancel", value=None))
+
+    selected_id: Optional[int] = questionary.select(
         "Select a habit to log:",
         choices=choices,
     ).ask()
 
-    if not choice:
-        print("No habit selected.")
+    if selected_id is None:
+        print("\n🔙 Cancelled.\n")
         return
 
-    # Extract habit_id from the selected choice
-    habit_id_str = choice.split(")")[0].strip("(id=")
-    try:
-        habit_id = int(habit_id_str)
-    except ValueError:
-        print("Invalid habit ID.")
-        return
-
-    success = service.log_completion(habit_id)
+    success = service.log_completion(selected_id)
     if success:
-        print(f"\n✅ Habit logged: {choice}\n")
-    else:
-        # Distinguish between "not found" and "already logged this period"
-        current_habits = service.list_habits()
-        exists = any(getattr(h, "habit_id", None) == habit_id for h in current_habits)
+        print(f"\n✅ Habit logged: (id={selected_id})\n")
+        return
 
-        if exists:
-            print("\nℹ️ Habit already logged for this period.\n")
-        else:
-            print("\n❌ Habit not found.\n")
+    # If not successful, try to distinguish why.
+    exists = any(h.habit_id == selected_id for h in service.list_habits())
+    if exists:
+        print("\nℹ️ Habit already logged for this period.\n")
+    else:
+        print("\n❌ Habit not found.\n")
 
 
 # ---------------------------------------------------------------------------
 # Analytics wrappers
 # ---------------------------------------------------------------------------
-
-def list_daily_habits(service: HabitService):
-    """List all daily habits."""
+def list_daily_habits(service: HabitService) -> None:
+    """List all habits with daily periodicity."""
     habits = service.list_habits()
     daily = list_habits_by_periodicity(habits, "daily")
 
     if not daily:
         print("\n📋 No daily habits found.\n")
-    else:
-        print("\n📋 Daily habits:")
-        for h in daily:
-            print(f" • id:{h.habit_id} name:{h.name}")
-        print()
+        return
+
+    print("\n📋 Daily habits:")
+    for h in daily:
+        print(f" • id:{h.habit_id} name:{h.name}")
+    print()
 
 
-def list_weekly_habits(service: HabitService):
-    """List all weekly habits."""
+def list_weekly_habits(service: HabitService) -> None:
+    """List all habits with weekly periodicity."""
     habits = service.list_habits()
     weekly = list_habits_by_periodicity(habits, "weekly")
 
     if not weekly:
         print("\n📋 No weekly habits found.\n")
-    else:
-        print("\n📋 Weekly habits:")
-        for h in weekly:
-            print(f" • id:{h.habit_id} name:{h.name}")
-        print()
+        return
+
+    print("\n📋 Weekly habits:")
+    for h in weekly:
+        print(f" • id:{h.habit_id} name:{h.name}")
+    print()
 
 
-def show_longest_streak_overall(service: HabitService):
+def show_longest_streak_overall(service: HabitService) -> None:
     """Display all habits that share the longest streak across all habits."""
     habits = service.list_habits()
     if not habits:
@@ -235,39 +225,35 @@ def show_longest_streak_overall(service: HabitService):
 
     print(f"\n📊 Longest streak (overall): {streak} periods\n")
     print("🏆 Habits with this streak:")
-
     for h in best_habits:
         print(f" • {h.name} (id:{h.habit_id}, period:{h.periodicity})")
-
     print()
 
 
-def show_longest_streak_by_habit(service: HabitService):
+def show_longest_streak_by_habit(service: HabitService) -> None:
     """Display the longest streak for a selected habit."""
     habits = service.list_habits()
     if not habits:
         print("\n📊 No habits yet.\n")
         return
 
-    choices = [f"(id={h.habit_id}) {h.name}" for h in habits]
-    habit_choice = questionary.select(
+    choices = [
+        Choice(title=f"(id={h.habit_id}) {h.name}", value=h.habit_id)
+        for h in habits
+    ]
+    choices.append(Choice("Cancel", value=None))
+
+    selected_id: Optional[int] = questionary.select(
         "Select a habit:",
         choices=choices,
     ).ask()
 
-    if not habit_choice:
-        print("No habit selected.\n")
+    if selected_id is None:
+        print("\n🔙 Cancelled.\n")
         return
 
-    habit_id_str = habit_choice.split(")")[0].strip("(id=")
-    try:
-        habit_id = int(habit_id_str)
-    except ValueError:
-        print("Invalid habit ID.\n")
-        return
-
-    streak = analytics_longest_streak_by_habit(habits, habit_id)
+    streak = analytics_longest_streak_by_habit(habits, selected_id)
     if streak == 0:
-        print(f"\n📊 Habit {habit_choice} has no streak yet.\n")
+        print(f"\n📊 Habit (id={selected_id}) has no streak yet.\n")
     else:
-        print(f"\n📊 Longest streak for {habit_choice}: {streak} periods\n")
+        print(f"\n📊 Longest streak for (id={selected_id}): {streak} periods\n")
