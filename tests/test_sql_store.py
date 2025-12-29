@@ -1,24 +1,23 @@
-# tests/test_sql_store.py
-
 from datetime import datetime, timedelta
-
 import sqlite3
+
 import pytest
 
 from habit_tracker.storage import SQLStore
 
 
 @pytest.fixture
-def sql_store(tmp_path):
+def sql_store(tmp_path) -> SQLStore:
     """
-    Create a fresh SQLStore using a temporary SQLite DB per test.
-    This avoids touching the real 'habit_tracker.db'.
+    Provide a fresh SQLStore using a temporary SQLite DB per test.
+
+    This avoids touching the real 'data/db/habit_tracker.db'.
     """
     db_file = tmp_path / "test_habits.db"
-    store = SQLStore(str(db_file))
-    return store
+    return SQLStore(str(db_file))
 
-def test_save_habit_and_load_without_completions(sql_store):
+
+def test_save_habit_and_load_without_completions(sql_store: SQLStore) -> None:
     created = datetime(2025, 1, 1, 8, 0, 0)
 
     habit_data = {
@@ -31,7 +30,6 @@ def test_save_habit_and_load_without_completions(sql_store):
 
     habit_id = sql_store.save_habit(habit_data)
 
-    # habit_id should be an int and start at 1
     assert isinstance(habit_id, int)
     assert habit_id == 1
 
@@ -47,7 +45,7 @@ def test_save_habit_and_load_without_completions(sql_store):
     assert h["completion_dates"] == []
 
 
-def test_save_habit_with_completions_and_load(sql_store):
+def test_save_habit_with_completions_and_load(sql_store: SQLStore) -> None:
     created = datetime(2025, 1, 1, 8, 0, 0)
     c1 = created + timedelta(days=1)
     c2 = created + timedelta(days=2)
@@ -65,21 +63,21 @@ def test_save_habit_with_completions_and_load(sql_store):
 
     habits = sql_store.load_habits()
     assert len(habits) == 1
-    h = habits[0]
 
+    h = habits[0]
     assert h["id"] == habit_id
     assert h["name"] == "Workout"
     assert h["periodicity"] == "daily"
     assert h["created_date"] == created
 
-    # completions should be restored as datetime objects in correct order
+    # completions restored as datetime objects, sorted ascending by SQL query
     assert h["completion_dates"] == [c1, c2]
 
 
-def test_save_all_replaces_existing_data(sql_store):
+def test_save_all_replaces_existing_data(sql_store: SQLStore) -> None:
     created = datetime(2025, 1, 1, 8, 0, 0)
 
-    # first habit via save_habit
+    # Insert initial habit
     sql_store.save_habit(
         {
             "name": "Old Habit",
@@ -94,7 +92,7 @@ def test_save_all_replaces_existing_data(sql_store):
     assert len(habits_before) == 1
     assert habits_before[0]["name"] == "Old Habit"
 
-    # now we replace with save_all
+    # Replace with save_all
     new_habits = [
         {
             "name": "Read",
@@ -112,24 +110,21 @@ def test_save_all_replaces_existing_data(sql_store):
         },
     ]
 
-    result = sql_store.save_all(new_habits)
-    assert result is True
+    assert sql_store.save_all(new_habits) is True
 
     habits_after = sql_store.load_habits()
     assert len(habits_after) == 2
 
     names = {h["name"] for h in habits_after}
     assert names == {"Read", "Meditate"}
-
-    # Make sure "Old Habit" is gone
     assert "Old Habit" not in names
 
 
-def test_delete_habit_removes_habit_and_tracking(sql_store):
+def test_delete_habit_removes_habit_and_tracking(sql_store: SQLStore) -> None:
     created = datetime(2025, 1, 1, 8, 0, 0)
     c1 = created + timedelta(days=1)
 
-    # habit 1 with completion
+    # habit 1 with a completion
     h1_id = sql_store.save_habit(
         {
             "name": "Read",
@@ -151,50 +146,44 @@ def test_delete_habit_removes_habit_and_tracking(sql_store):
         }
     )
 
-    # both should be there
-    habits = sql_store.load_habits()
-    assert len(habits) == 2
+    assert len(sql_store.load_habits()) == 2
 
-    # delete habit 1
-    ok = sql_store.delete_habit(h1_id)
-    assert ok is True
+    assert sql_store.delete_habit(h1_id) is True
 
     habits_after = sql_store.load_habits()
     assert len(habits_after) == 1
     assert habits_after[0]["id"] == h2_id
     assert habits_after[0]["name"] == "Workout"
 
-    # Optional: check directly that tracking rows for h1 are gone
-    conn = sqlite3.connect(sql_store._db_path)
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM tracking WHERE habit_id = ?", (h1_id,))
-    count = cursor.fetchone()[0]
-    conn.close()
+    # Verify tracking rows for deleted habit are also removed
+    with sqlite3.connect(str(sql_store._db_path)) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM tracking WHERE habit_id = ?", (h1_id,))
+        count = cursor.fetchone()[0]
 
     assert count == 0
 
 
-def test_log_completion_appends_new_completion(sql_store):
+def test_log_completion_appends_new_completion(sql_store: SQLStore) -> None:
     created = datetime(2025, 1, 1, 8, 0, 0)
-    habit_data = {
-        "name": "Read",
-        "description": "10 pages",
-        "periodicity": "daily",
-        "created_date": created,
-        "completion_dates": [],
-    }
 
-    habit_id = sql_store.save_habit(habit_data)
+    habit_id = sql_store.save_habit(
+        {
+            "name": "Read",
+            "description": "10 pages",
+            "periodicity": "daily",
+            "created_date": created,
+            "completion_dates": [],
+        }
+    )
 
     when = created + timedelta(days=3)
 
-    # call the method under test
     sql_store.log_completion(habit_id, when)
 
     habits = sql_store.load_habits()
     assert len(habits) == 1
-    h = habits[0]
 
+    h = habits[0]
     assert h["id"] == habit_id
-    assert len(h["completion_dates"]) == 1
-    assert h["completion_dates"][0] == when
+    assert h["completion_dates"] == [when]
