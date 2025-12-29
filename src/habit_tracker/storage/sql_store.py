@@ -1,13 +1,33 @@
 import sqlite3
 from datetime import datetime
 from typing import Optional
-from pathlib import Path  # NEW
+from pathlib import Path
 
 from habit_tracker.storage import Storage
 from habit_tracker.models import User
 
 
 class SQLStore(Storage):
+    """
+    SQLite-backed persistence layer for the Habit Tracker app.
+
+    Implements the `Storage` interface for habit persistence using a local SQLite
+    database. It supports:
+    - Saving a single habit and its completion history (`save_habit`)
+    - Replacing all habits in one operation (`save_all`)
+    - Loading all habits with completion timestamps (`load_habits`)
+    - Deleting a habit and its tracked completions (`delete_habit`)
+    - Appending a completion event (`log_completion`)
+
+    Additionally, this storage class includes helper methods for the app's optional
+    authentication feature (single-user design): `save_user` and `load_user`.
+
+    Notes:
+    - Default database path: `data/db/habit_tracker.db` relative to the project root.
+    - A custom database path can be provided (useful for tests), including the SQLite in-memory path `:memory:`.
+    - Datetimes are stored as ISO 8601 strings and parsed back to `datetime` on load.
+    """
+
     # Project root: .../src/habit_tracker/storage/sql_store.py -> go up 3 levels
     _PROJECT_ROOT = Path(__file__).resolve().parents[3]
     _DATA_DB_DIR = _PROJECT_ROOT / "data" / "db"
@@ -30,7 +50,6 @@ class SQLStore(Storage):
             - Creates database tables if they do not already exist.
         """
 
-
         # allow overriding DB path (useful for tests)
         self._db_path = Path(db_path) if db_path is not None else self._DEFAULT_DB_PATH
 
@@ -43,6 +62,15 @@ class SQLStore(Storage):
         self._initialize_db()
 
     def _initialize_db(self):
+        """
+        Create required database tables if they do not exist.
+
+        Tables:
+            - habits: Stores habit definitions (name, description, periodicity, created_date)
+            - tracking: Stores completion events for habits (habit_id, completion_date)
+            - user: Stores a single user record (id fixed to 1) with password hash and salt
+        """
+
         with sqlite3.connect(str(self._db_path)) as conn:
             cursor = conn.cursor()
 
@@ -88,8 +116,17 @@ class SQLStore(Storage):
     # ------------------------------------------------------------------
     # User methods
     # ------------------------------------------------------------------
-    def save_user(self, user: User):
-        """Insert or update the single user row."""
+    def save_user(self, user: User) -> None:
+        """
+        Persist the single user record (insert or update).
+
+        The application is designed as a single-user workflow, therefore the row
+        always uses `id = 1`.
+
+        Args:
+            user: User instance containing username, password_hash, and salt.
+        """
+
         with sqlite3.connect(str(self._db_path)) as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -102,7 +139,13 @@ class SQLStore(Storage):
             conn.commit()
 
     def load_user(self) -> Optional[User]:
-        """Load the single stored user, or None if not set."""
+        """
+        Load the stored user record.
+
+        Returns:
+            A `User` instance if a user is stored, otherwise None.
+        """
+
         with sqlite3.connect(str(self._db_path)) as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -119,7 +162,25 @@ class SQLStore(Storage):
     # ------------------------------------------------------------------
     # Habit methods
     # ------------------------------------------------------------------
-    def save_habit(self, habit_data):
+    def save_habit(self, habit_data) -> int:
+        """
+        Insert a new habit and its completion history.
+
+        Expects a dict-like structure containing the habit fields. Completion
+        timestamps (if provided) are inserted into the tracking table.
+
+        Args:
+            habit_data: Dictionary containing:
+                - name (str)
+                - description (str, optional)
+                - periodicity (str)
+                - created_date (datetime)
+                - completion_dates (list[datetime], optional)
+
+        Returns:
+            The newly created habit id (int).
+        """
+
         with sqlite3.connect(str(self._db_path)) as conn:
             cursor = conn.cursor()
 
@@ -150,7 +211,24 @@ class SQLStore(Storage):
             conn.commit()
             return habit_id
 
-    def save_all(self, habits_list):
+    def save_all(self, habits_list) -> bool:
+        """
+        Replace all stored habits with the provided list (full rewrite).
+
+        This method clears existing data in both `habits` and `tracking` tables
+        and re-inserts each habit and its completion events.
+
+        Intended use:
+            - Bulk persistence from in-memory state
+            - Resetting the DB to match an authoritative source (e.g., fixtures)
+
+        Args:
+            habits_list: List of habit dictionaries (same shape as `save_habit`).
+
+        Returns:
+            True if the operation completed successfully.
+        """
+
         with sqlite3.connect(str(self._db_path)) as conn:
             cursor = conn.cursor()
 
@@ -185,8 +263,15 @@ class SQLStore(Storage):
             conn.commit()
             return True
 
-    def log_completion(self, habit_id: int, when: datetime):
-        """Persist a single completion event for a habit."""
+    def log_completion(self, habit_id: int, when: datetime) -> None:
+        """
+        Persist a single completion event for a habit.
+
+        Args:
+            habit_id: Database id of the habit being completed.
+            when: Datetime of completion (stored as ISO 8601 string).
+        """
+
         with sqlite3.connect(str(self._db_path)) as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -198,7 +283,20 @@ class SQLStore(Storage):
             )
             conn.commit()
 
-    def load_habits(self):
+    def load_habits(self) -> list[dict]:
+        """
+        Load all habits and their completion history from the database.
+
+        Returns:
+            A list of habit dictionaries. Each dictionary contains:
+                - id (int)
+                - name (str)
+                - description (str)
+                - periodicity (str)
+                - created_date (datetime)
+                - completion_dates (list[datetime])
+        """
+
         with sqlite3.connect(str(self._db_path)) as conn:
             cursor = conn.cursor()
 
@@ -234,7 +332,17 @@ class SQLStore(Storage):
 
             return habits
 
-    def delete_habit(self, habit_id):
+    def delete_habit(self, habit_id: int) -> bool:
+        """
+        Delete a habit and all associated completion events.
+
+        Args:
+            habit_id: Database id of the habit to delete.
+
+        Returns:
+            True if the deletion was executed.
+        """
+
         with sqlite3.connect(str(self._db_path)) as conn:
             cursor = conn.cursor()
 
