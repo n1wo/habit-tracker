@@ -1,25 +1,42 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Optional
 
 from habit_tracker.models import Habit
-from habit_tracker.storage import Storage 
+from habit_tracker.storage import Storage
 from .habit_service import HabitService
 
 
 class HabitManager(HabitService):
-    """Class to manage multiple habits in the habit tracker application."""
+    """
+    Service layer for managing habits in memory with optional persistence.
 
-    def __init__(self, storage: Optional[Storage] = None):
+    Responsibilities:
+    - Create and delete habits
+    - Log completions (check-offs) while enforcing periodicity rules
+    - Load/save habit state via a Storage backend (e.g. SQLStore)
+
+    Design notes:
+    - The manager keeps an in-memory list for ordering and display.
+    - A dict index (_habit_by_id) provides O(1) lookup by habit_id.
+    - If a Storage backend is provided, habits are loaded on startup and
+      completion events are written through immediately.
+    """
+
+    def __init__(self, storage: Optional[Storage] = None) -> None:
         """
-        :param storage: Optional persistence backend (e.g. SQLStore).
-                        If None, the manager works purely in memory (for tests).
+        Initialize the manager.
+
+        Args:
+            storage: Optional persistence backend. If None, the manager works
+                purely in memory (useful for unit tests).
         """
         self._storage = storage
         self.habits: list[Habit] = []
-        self._habit_by_id: dict[int, Habit] = {} # habit_id -> Habit mapping for quick lookup
+        self._habit_by_id: dict[int, Habit] = {}
         self.habit_id_counter = 0
 
-        # Load existing habits from storage on startup
         if self._storage is not None:
             self._load_from_storage()
 
@@ -27,8 +44,19 @@ class HabitManager(HabitService):
     # Internal helpers
     # ------------------------------------------------------------------
     def _load_from_storage(self) -> None:
-        """Load habits from the storage backend into memory."""
-        raw_habits = self._storage.load_habits()  # list[dict] from SQLStore
+        """
+        Load habits from the storage backend into memory.
+
+        Expects the storage layer to return a list of dictionaries with:
+            id, name, description, periodicity, created_date, completion_dates
+        """
+        if self._storage is None:
+            return
+
+        raw_habits = self._storage.load_habits()
+
+        self.habits.clear()
+        self._habit_by_id.clear()
 
         for data in raw_habits:
             habit = Habit(
@@ -37,64 +65,90 @@ class HabitManager(HabitService):
                 periodicity=data["periodicity"],
                 created_date=data["created_date"],
                 description=data.get("description"),
+                completion_dates=data.get("completion_dates", []),
             )
-            # restore completion dates
-            # assuming Habit has an attribute `completion_dates: list[datetime]`
-            habit.completion_dates = data.get("completion_dates", [])
-
             self.habits.append(habit)
             self._habit_by_id[habit.habit_id] = habit
 
+        # Keep the counter in sync with existing ids.
         if self.habits:
             self.habit_id_counter = max(h.habit_id for h in self.habits)
 
     def _serialize_habit(self, habit: Habit) -> dict:
-        """Convert a Habit object to the dict format expected by Storage."""
+        """
+        Convert a Habit object into the dict format expected by Storage.
+
+        Args:
+            habit: Habit instance to serialize.
+
+        Returns:
+            Dictionary representing the habit and its completion history.
+        """
         return {
             "id": habit.habit_id,
             "name": habit.name,
             "description": habit.description or "",
             "periodicity": habit.periodicity,
             "created_date": habit.created_date,
-            "completion_dates": list(getattr(habit, "completion_dates", [])),
-        } 
+            "completion_dates": list(habit.completion_dates),
+        }
 
     def _save_all_to_storage(self) -> None:
-        """Write-through persistence of all habits (fallback for complex updates)."""
+        """
+        Persist the full in-memory habit list.
+
+        This is useful as a "bulk rewrite" when needed, but most operations use
+        write-through persistence on each action (save_habit, log_completion, delete).
+        """
         if self._storage is None:
             return
+
         habits_data = [self._serialize_habit(h) for h in self.habits]
-        self._storage.save_all(habits_data)   
+        self._storage.save_all(habits_data)
 
     @staticmethod
-    def _already_completed_for_period(habit, when: datetime) -> bool:
-        """Return True if the habit already has a completion in this period."""
-        per = getattr(habit, "periodicity", "").lower()
+    def _already_completed_for_period(habit: Habit, when: datetime) -> bool:
+        """
+        Return True if the habit already has a completion in the target period.
 
+        Period rules:
+        - weekly: only one completion per ISO week
+        - daily: only one completion per calendar day
+        """
+        per = habit.periodicity.lower()
 
-        # WEEKLY
         if per == "weekly":
-            year, week, _ = when.isocalendar() # get year and week number
-            for dt in habit.completion_dates: 
+            year, week, _ = when.isocalendar()
+            for dt in habit.completion_dates:
                 y, w, _ = dt.isocalendar()
-                if (y, w) == (year, week): # 
+                if (y, w) == (year, week):
                     return True
             return False
 
-        # DAILY (default)
+        # Default: daily
         target_date = when.date()
         return any(dt.date() == target_date for dt in habit.completion_dates)
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-    def add_habit(self, name: str, periodicity: str, description: str = None) -> Habit:
-        """Add a new habit to the manager."""
+    def add_habit(self, name: str, periodicity: str, description: Optional[str] = None) -> Habit:
+        """
+        Add a new habit.
 
+        If a storage backend is provided, the database assigns the habit id.
+        Otherwise, the manager assigns an incrementing in-memory id.
+
+        Args:
+            name: Habit name.
+            periodicity: "daily" or "weekly" (string-based).
+            description: Optional longer description.
+
+        Returns:
+            The created Habit instance.
+        """
         created = datetime.now()
 
-        # Generate a unique habit ID
-        # If we have a storage backend, let the DB generate the ID
         if self._storage is not None:
             habit_data = {
                 "name": name,
@@ -104,75 +158,99 @@ class HabitManager(HabitService):
                 "completion_dates": [],
             }
             habit_id = self._storage.save_habit(habit_data)
+            # Keep counter aligned with DB ids (important if you later add in-memory habits).
+            self.habit_id_counter = max(self.habit_id_counter, habit_id)
         else:
-            # pure in-memory fallback
             self.habit_id_counter += 1
             habit_id = self.habit_id_counter
 
-        # Create a new Habit instance
         new_habit = Habit(
             habit_id=habit_id,
             name=name,
             periodicity=periodicity,
             created_date=created,
-            description=description
+            description=description,
+            completion_dates=[],
         )
 
-        # habits start with no completions
-        if not hasattr(new_habit, "completion_dates"):
-            new_habit.completion_dates = []
         self.habits.append(new_habit)
         self._habit_by_id[habit_id] = new_habit
-
         return new_habit
-    
+
     def remove_habit(self, habit_id: int) -> bool:
-        """Remove a habit by its ID. Returns True if removed, False if not found."""
+        """
+        Remove a habit by id.
+
+        Args:
+            habit_id: The id of the habit to remove.
+
+        Returns:
+            True if the habit existed and was removed, otherwise False.
+        """
         habit = self._habit_by_id.pop(habit_id, None)
         if habit is None:
             return False
-        
-        # remove from list
+
         if habit in self.habits:
             self.habits.remove(habit)
 
-        # also delete from storage if available
         if self._storage is not None:
             self._storage.delete_habit(habit_id)
 
         return True
 
-    def log_completion(self, habit_id: int, when: datetime = None) -> bool:
-        """Check off habit completion by habit_id"""
+    def log_completion(self, habit_id: int, when: Optional[datetime] = None) -> bool:
+        """
+        Log a completion (check-off) for the given habit id.
+
+        Enforces one completion per period (day/week).
+
+        Args:
+            habit_id: Habit identifier.
+            when: Completion timestamp. Defaults to `datetime.now()`.
+
+        Returns:
+            True if the completion was recorded, False if the habit was not found
+            or already completed in the same period.
+        """
         when = when or datetime.now()
 
         habit = self._habit_by_id.get(habit_id)
         if habit is None:
             return False
-        
+
         if self._already_completed_for_period(habit, when):
-            # already logged for this day/week
             return False
-        
+
         habit.log_completion(when)
 
-        # persist if storage available
         if self._storage is not None:
             self._storage.log_completion(habit_id, when)
 
         return True
 
     def list_habits(self) -> list[Habit]:
-        """Return all stored habits."""
+        """
+        Return all habits currently loaded in memory.
+
+        Returns:
+            A list of Habit objects.
+        """
         return self.habits
-    
+
     def seed_predefined_habits(self, force: bool = False) -> int:
         """
         Seed the application with predefined habits.
 
-        • Runs only once by default (skips if habits already exist)
-        • Uses the standard add_habit() API
-        • Returns number of habits created
+        Behavior:
+        - By default, seeds only if there are no existing habits.
+        - If `force=True`, seeds even if habits already exist.
+
+        Args:
+            force: If True, always seed.
+
+        Returns:
+            The number of habits created.
         """
         from habit_tracker.fixtures.predefined_habits import PREDEFINED_HABITS
 
