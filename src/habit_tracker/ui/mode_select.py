@@ -2,7 +2,7 @@
 UI screen helpers for the Habit Tracker CLI.
 
 This module contains simple prompt-based screens that guide high-level
-application flow (mode selection, banners, etc.).
+application flow. No business logic should live here.
 """
 
 from typing import Optional
