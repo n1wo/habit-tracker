@@ -17,6 +17,20 @@ class SQLStore(Storage):
     _DEFAULT_DB_PATH = _DATA_DB_DIR / "habit_tracker.db"
 
     def __init__(self, db_path: Optional[str] = None):
+        """
+        Initialize the SQLite storage backend.
+
+        Args:
+            db_path: Optional path to the SQLite database file. If None, the
+                default project DB path is used. Use `:memory:` for an in-memory
+                database during tests.
+
+        Side effects:
+            - Ensures required directories exist (unless using `:memory:`).
+            - Creates database tables if they do not already exist.
+        """
+
+
         # allow overriding DB path (useful for tests)
         self._db_path = Path(db_path) if db_path is not None else self._DEFAULT_DB_PATH
 
