@@ -1,3 +1,10 @@
+"""
+Application entry point for the Habit Tracker CLI.
+
+This module provides a minimal `main()` function that delegates all
+startup logic to the UI layer via `run_app()`.
+"""
+
 from habit_tracker.app_entry import run_app
 
 
