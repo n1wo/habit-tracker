@@ -1,11 +1,28 @@
-from __future__ import annotations
+"""
+CLI authentication flows for the Habit Tracker app.
+
+This module contains user interaction logic only (prompts + printing).
+All authentication rules, hashing, and persistence are handled by AuthService.
+"""
+
 import questionary
 
 from habit_tracker.services.auth_service import AuthService
 
 
 def initial_password_setup(auth: AuthService) -> bool:
-    """Guide user through first-run password creation."""
+    """
+    Guide the user through first-run password creation.
+
+    Flow:
+    - Ask for password twice (confirmation)
+    - Validate non-empty input
+    - Validate strength using AuthService.check_password_strength()
+    - Persist credentials using AuthService.set_password()
+
+    Returns:
+        True if setup succeeds, False if the user cancels.
+    """
     print("\n🔐 First-time setup — create your master password.\n")
 
     while True:
@@ -27,22 +44,23 @@ def initial_password_setup(auth: AuthService) -> bool:
             print("⚠️ Passwords do not match.\n")
             continue
 
-        # --- NIST-style strength check ---------------------------------
+        # Strength check
         report = auth.check_password_strength(pw1)
 
         if not report["ok"]:
             print("\n❌ Password is too weak:")
             for msg in report["errors"]:
                 print(f"  • {msg}")
+
             if report["suggestions"]:
                 print("\n💡 Suggestions:")
                 for msg in report["suggestions"]:
                     print(f"  • {msg}")
-            print()  # blank line before re-prompt
-            continue
-        # ---------------------------------------------------------------
 
-        # Optional: still show suggestions even if it's acceptable
+            print()
+            continue
+
+        # Optional: show suggestions even if acceptable
         if report["suggestions"]:
             print("\n💡 Your password is acceptable, but you could improve it:")
             for msg in report["suggestions"]:
@@ -55,7 +73,16 @@ def initial_password_setup(auth: AuthService) -> bool:
 
 
 def login_flow(auth: AuthService, attempts: int = 3) -> bool:
-    """Prompt user to log in."""
+    """
+    Prompt the user to log in with limited attempts.
+
+    Args:
+        auth: Authentication service.
+        attempts: Maximum number of allowed password attempts.
+
+    Returns:
+        True if login succeeds, False if cancelled or attempts are exhausted.
+    """
     print("\n🔐 Please log in.\n")
 
     for attempt in range(1, attempts + 1):
