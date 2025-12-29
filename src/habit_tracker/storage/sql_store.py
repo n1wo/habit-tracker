@@ -24,7 +24,8 @@ class SQLStore(Storage):
 
     Notes:
     - Default database path: `data/db/habit_tracker.db` relative to the project root.
-    - A custom database path can be provided (useful for tests), including the SQLite in-memory path `:memory:`.
+    - A custom database path can be provided (useful for tests), including the 
+      SQLite in-memory path `:memory:`.
     - Datetimes are stored as ISO 8601 strings and parsed back to `datetime` on load.
     """
 

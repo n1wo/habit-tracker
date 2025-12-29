@@ -1,34 +1,66 @@
-from __future__ import annotations
+"""
+Functional analytics for the Habit Tracker app.
+
+This module contains pure functions that operate on Habit data and return
+computed results (no I/O, no persistence, no mutation of inputs).
+
+Key features:
+- List habits (all / by periodicity)
+- Compute longest streak (per habit / overall)
+- Compute current streak (per habit), with injectable "today" for testing
+
+Streak rules:
+- Daily streaks use consecutive calendar days.
+- Weekly streaks use consecutive ISO weeks (year/week), handling year rollovers.
+"""
 
 from datetime import date, timedelta
-from typing import Optional
-
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Optional
 
 from habit_tracker.models import Habit
+
 
 # ----------------------------------------------------------------------
 # Basic list operations
 # ----------------------------------------------------------------------
 def list_all_habits(habits: Iterable[Habit]) -> list[Habit]:
-    """Return all habits as a new list (pure, no mutation)."""
+    """
+    Return all habits as a new list.
+
+    This function is pure: it does not mutate the input iterable.
+    """
     return list(habits)
 
 
-def list_habits_by_periodicity(
-    habits: Iterable[Habit],
-    periodicity: str,
-) -> list[Habit]:
-    """Return habits filtered by periodicity (case-insensitive)."""
+def list_habits_by_periodicity(habits: Iterable[Habit], periodicity: str) -> list[Habit]:
+    """
+    Filter habits by periodicity (case-insensitive).
+
+    Args:
+        habits: An iterable of Habit objects.
+        periodicity: The periodicity string to filter by (e.g. "daily", "weekly").
+
+    Returns:
+        A list of habits whose periodicity matches the given value.
+    """
     p = periodicity.lower()
     return [h for h in habits if h.periodicity.lower() == p]
 
+
 # ----------------------------------------------------------------------
-# Streak calculation helpers
+# Longest streak calculation helpers
 # ----------------------------------------------------------------------
 def _longest_daily_streak(dates: list[date]) -> int:
-    """Return the longest run of consecutive calendar days."""
+    """
+    Return the longest run of consecutive calendar days.
+
+    Args:
+        dates: Sorted list of unique completion dates (date objects).
+
+    Returns:
+        The maximum consecutive-day streak length.
+    """
     if not dates:
         return 0
 
@@ -46,18 +78,26 @@ def _longest_daily_streak(dates: list[date]) -> int:
 
 
 def _longest_weekly_streak(dates: list[date]) -> int:
-    """Return the longest run of consecutive ISO weeks."""
+    """
+    Return the longest run of consecutive ISO weeks.
+
+    Args:
+        dates: Sorted list of unique completion dates (date objects).
+
+    Returns:
+        The maximum consecutive-week streak length, measured in ISO weeks.
+    """
     if not dates:
         return 0
 
-    # Convert to unique (year, week) pairs
+    # Convert to unique (year, week) pairs.
     weeks = sorted({(d.isocalendar().year, d.isocalendar().week) for d in dates})
 
     longest = 1
     current = 1
 
     for (y1, w1), (y2, w2) in zip(weeks, weeks[1:]):
-        # Consecutive weeks, including year rollover
+        # Consecutive weeks, including year rollover (week 52/53 -> week 1).
         if (y2 == y1 and w2 == w1 + 1) or (y2 == y1 + 1 and w1 in (52, 53) and w2 == 1):
             current += 1
             longest = max(longest, current)
@@ -66,25 +106,31 @@ def _longest_weekly_streak(dates: list[date]) -> int:
 
     return longest
 
-# ---------------------------
+
+# ----------------------------------------------------------------------
 # Current streak helpers
-# ---------------------------
+# ----------------------------------------------------------------------
 def _current_daily_streak(dates: list[date], *, today: date) -> int:
     """
-    Current daily streak as of `today`.
+    Return the current daily streak as of `today`.
 
-    Rules:
+    "Current streak" means the streak is still alive:
     - If completed today: streak ends at today.
-    - If not completed today but completed yesterday: streak ends at yesterday
-      (still "alive" until you miss today).
-    - Otherwise: 0
+    - Else if completed yesterday: streak ends at yesterday (still alive today).
+    - Else: streak is broken => 0.
+
+    Args:
+        dates: Sorted list of unique completion dates.
+        today: Reference date (injectable for deterministic tests).
+
+    Returns:
+        Current daily streak length.
     """
     if not dates:
         return 0
 
     completed = set(dates)
 
-    # Decide where the streak "ends" (the latest day that still keeps it alive).
     if today in completed:
         end = today
     elif (today - timedelta(days=1)) in completed:
@@ -92,7 +138,6 @@ def _current_daily_streak(dates: list[date], *, today: date) -> int:
     else:
         return 0
 
-    # Count backwards day-by-day.
     streak = 0
     cur = end
     while cur in completed:
@@ -103,6 +148,7 @@ def _current_daily_streak(dates: list[date], *, today: date) -> int:
 
 
 def _iso_week_key(d: date) -> tuple[int, int]:
+    """Return an ISO week key as (year, week)."""
     iso = d.isocalendar()
     return (iso.year, iso.week)
 
@@ -110,8 +156,14 @@ def _iso_week_key(d: date) -> tuple[int, int]:
 def _prev_iso_week(year: int, week: int) -> tuple[int, int]:
     """
     Return the previous ISO week key (year, week), handling year rollovers.
+
+    Args:
+        year: ISO year.
+        week: ISO week number.
+
+    Returns:
+        The ISO (year, week) of the previous week.
     """
-    # Monday of the given ISO week
     monday = date.fromisocalendar(year, week, 1)
     prev_monday = monday - timedelta(days=7)
     iso = prev_monday.isocalendar()
@@ -120,13 +172,19 @@ def _prev_iso_week(year: int, week: int) -> tuple[int, int]:
 
 def _current_weekly_streak(dates: list[date], *, today: date) -> int:
     """
-    Current weekly streak as of `today` (ISO weeks).
+    Return the current weekly streak as of `today` (ISO weeks).
 
-    Rules:
+    "Current streak" means the streak is still alive:
     - If completed in this ISO week: streak ends at this week.
-    - If not completed this week but completed last ISO week: streak ends at last week
-      (still "alive" until you miss this week).
-    - Otherwise: 0
+    - Else if completed last ISO week: streak ends at last week (still alive).
+    - Else: streak is broken => 0.
+
+    Args:
+        dates: Sorted list of unique completion dates.
+        today: Reference date (injectable for deterministic tests).
+
+    Returns:
+        Current weekly streak length (in ISO weeks).
     """
     if not dates:
         return 0
@@ -143,7 +201,6 @@ def _current_weekly_streak(dates: list[date], *, today: date) -> int:
     else:
         return 0
 
-    # Count backwards week-by-week.
     streak = 0
     cur = end
     while cur in completed_weeks:
@@ -152,73 +209,98 @@ def _current_weekly_streak(dates: list[date], *, today: date) -> int:
 
     return streak
 
+
 # ----------------------------------------------------------------------
 # Public streak API
 # ----------------------------------------------------------------------
-def calculate_streak(habit) -> int:
-    """Calculate the longest streak for a habit based on its periodicity."""
+def calculate_streak(habit: Habit) -> int:
+    """
+    Calculate the longest streak for a habit based on its periodicity.
+
+    Args:
+        habit: Habit object containing periodicity and completion timestamps.
+
+    Returns:
+        The longest streak length for the habit.
+    """
     if not habit.completion_dates:
         return 0
 
-    # Unique sorted dates
+    # Unique sorted dates (strip time).
     dates = sorted({dt.date() for dt in habit.completion_dates})
 
     if habit.periodicity.lower() == "weekly":
         return _longest_weekly_streak(dates)
-    else:
-        return _longest_daily_streak(dates)
+
+    return _longest_daily_streak(dates)
 
 
 def longest_streak_overall(habits: Iterable[Habit]) -> dict[str, Any]:
     """
-    Return ALL habits that share the longest overall streak.
+    Return all habits that share the longest overall streak.
+
+    Args:
+        habits: An iterable of Habit objects.
 
     Returns:
-        {
-            "habits": list[Habit],   # all habits with longest streak
-            "streak": int            # the streak value
-        }
+        A dictionary:
+            {
+              "habits": list[Habit],  # all habits with the longest streak
+              "streak": int           # the longest streak value
+            }
     """
-    longest_streak = 0
-    best_habits: list[Habit] = []
+    longest = 0
+    best: list[Habit] = []
 
     for habit in habits:
         streak = calculate_streak(habit)
 
-        if streak > longest_streak:
-            # Found a new maximum — reset the list
-            longest_streak = streak
-            best_habits = [habit]
+        if streak > longest:
+            longest = streak
+            best = [habit]
+        elif streak == longest and streak > 0:
+            best.append(habit)
 
-        elif streak == longest_streak and streak > 0:
-            # Same as current max — append
-            best_habits.append(habit)
+    return {"habits": best, "streak": longest}
 
-    return {
-        "habits": best_habits,
-        "streak": longest_streak,
-    }
 
-def longest_streak_by_habit(habits: list, habit_id: int) -> int:
+def longest_streak_by_habit(habits: Iterable[Habit], habit_id: int) -> int:
+    """
+    Return the longest streak for a specific habit identified by habit_id.
+
+    Args:
+        habits: Iterable of Habit objects.
+        habit_id: The habit identifier.
+
+    Returns:
+        The longest streak for the selected habit, or 0 if not found.
+    """
     habit = next((h for h in habits if h.habit_id == habit_id), None)
-    if habit is None:
-        return 0
-    return calculate_streak(habit)
+    return calculate_streak(habit) if habit else 0
+
 
 def calculate_current_streak(habit: Habit, *, today: Optional[date] = None) -> int:
     """
-    Current streak for a habit based on its periodicity, relative to `today`.
-    `today` is injectable for deterministic tests.
+    Calculate the current (still-alive) streak for a habit.
+
+    This differs from `calculate_streak` which returns the *maximum historical*
+    streak. Current streak is computed relative to `today` and supports injection
+    for deterministic tests.
+
+    Args:
+        habit: Habit object to evaluate.
+        today: Reference date. Defaults to `date.today()` if not provided.
+
+    Returns:
+        Current streak length based on periodicity.
     """
     if not habit.completion_dates:
         return 0
 
     today = today or date.today()
-
-    # Unique sorted dates (strip times)
     dates = sorted({dt.date() for dt in habit.completion_dates})
 
     if habit.periodicity.lower() == "weekly":
         return _current_weekly_streak(dates, today=today)
-    else:
-        return _current_daily_streak(dates, today=today)
+
+    return _current_daily_streak(dates, today=today)
