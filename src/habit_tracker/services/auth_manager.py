@@ -22,7 +22,7 @@ from typing import Optional, TypedDict
 
 from habit_tracker.models import User
 from habit_tracker.storage import Storage
-from habit_tracker.services.auth_service import AuthService
+from habit_tracker.services.auth_service import AuthService, PasswordStrengthReport
 
 
 class AuthError(Exception):
@@ -120,7 +120,7 @@ class AuthManager(AuthService):
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-    def check_password_strength(self, password: str) -> PasswordStrengthResult:
+    def check_password_strength(self, password: str) -> PasswordStrengthReport:
         """
         Check password strength using simple NIST-inspired rules.
 
