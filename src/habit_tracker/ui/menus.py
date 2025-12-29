@@ -1,14 +1,29 @@
+"""
+UI menus for the Habit Tracker CLI.
+
+This module contains menu navigation only (questionary prompts and routing).
+All behavior is delegated to functions in `habit_tracker.ui.actions` and
+`habit_tracker.ui.screens`.
+"""
+
+from typing import Optional
+
 import questionary
+
 from habit_tracker.services import HabitService
 import habit_tracker.ui.actions as actions
 import habit_tracker.ui.screens as screens
 
 
-def analytics_menu(service: HabitService):
-    """Show analytics options and run selected analysis."""
+def analytics_menu(service: HabitService) -> None:
+    """
+    Show analytics options and run the selected analysis.
 
+    Args:
+        service: Habit service providing access to habit data and operations.
+    """
     while True:
-        choice = questionary.select(
+        choice: Optional[str] = questionary.select(
             "Analytics – choose an option:",
             choices=[
                 "List all habits",
@@ -20,8 +35,11 @@ def analytics_menu(service: HabitService):
             ],
         ).ask()
 
+        # Handle cancelled prompt (e.g. ESC / Ctrl+C)
+        if choice is None or choice == "Back to main menu":
+            return
+
         if choice == "List all habits":
-            # Reuse the existing view_habits implementation
             actions.view_habits(service)
         elif choice == "List daily habits":
             actions.list_daily_habits(service)
@@ -31,15 +49,19 @@ def analytics_menu(service: HabitService):
             actions.show_longest_streak_overall(service)
         elif choice == "Show longest streak for a habit":
             actions.show_longest_streak_by_habit(service)
-        elif choice == "Back to main menu":
-            return  # exit analytics submenu and go back
 
 
-def main_menu(service: HabitService):
+def main_menu(service: HabitService) -> None:
+    """
+    Show the main menu loop and route user actions.
+
+    Args:
+        service: Habit service providing access to habit data and operations.
+    """
     screens.welcome_banner()
 
     while True:
-        choice = questionary.select(
+        choice: Optional[str] = questionary.select(
             "Choose an action:",
             choices=[
                 "Add Habit",
@@ -49,6 +71,11 @@ def main_menu(service: HabitService):
                 "Exit",
             ],
         ).ask()
+
+        # Handle cancelled prompt
+        if choice is None or choice == "Exit":
+            return
+
         if choice == "Add Habit":
             actions.add_habit(service)
         elif choice == "Remove Habit":
@@ -56,7 +83,4 @@ def main_menu(service: HabitService):
         elif choice == "Log completion":
             actions.log_completion(service)
         elif choice == "Analytics":
-            # Call the local analytics_menu defined above
             analytics_menu(service)
-        elif choice == "Exit":
-            return
