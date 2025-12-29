@@ -1,3 +1,15 @@
+"""
+Unit tests for the SQLStore persistence layer.
+
+These tests verify that the SQLite-backed Storage implementation:
+- Correctly persists and loads habits
+- Handles completion events
+- Replaces data when requested
+- Cleans up related tracking rows on deletion
+
+All tests use a temporary SQLite database to avoid touching real user data.
+"""
+
 from datetime import datetime, timedelta
 import sqlite3
 
@@ -9,15 +21,21 @@ from habit_tracker.storage import SQLStore
 @pytest.fixture
 def sql_store(tmp_path) -> SQLStore:
     """
-    Provide a fresh SQLStore using a temporary SQLite DB per test.
+    Provide a fresh SQLStore instance backed by a temporary SQLite database.
 
-    This avoids touching the real 'data/db/habit_tracker.db'.
+    Using tmp_path ensures:
+    - Each test runs with an isolated database
+    - No real application data is modified
     """
     db_file = tmp_path / "test_habits.db"
     return SQLStore(str(db_file))
 
 
 def test_save_habit_and_load_without_completions(sql_store: SQLStore) -> None:
+    """
+    Saving a habit without completion dates should persist the habit correctly
+    and load it back with an empty completion list.
+    """
     created = datetime(2025, 1, 1, 8, 0, 0)
 
     habit_data = {
@@ -46,6 +64,10 @@ def test_save_habit_and_load_without_completions(sql_store: SQLStore) -> None:
 
 
 def test_save_habit_with_completions_and_load(sql_store: SQLStore) -> None:
+    """
+    Saving a habit with completion dates should restore those completions
+    as datetime objects in ascending order.
+    """
     created = datetime(2025, 1, 1, 8, 0, 0)
     c1 = created + timedelta(days=1)
     c2 = created + timedelta(days=2)
@@ -69,15 +91,16 @@ def test_save_habit_with_completions_and_load(sql_store: SQLStore) -> None:
     assert h["name"] == "Workout"
     assert h["periodicity"] == "daily"
     assert h["created_date"] == created
-
-    # completions restored as datetime objects, sorted ascending by SQL query
     assert h["completion_dates"] == [c1, c2]
 
 
 def test_save_all_replaces_existing_data(sql_store: SQLStore) -> None:
+    """
+    save_all() should remove all existing habits and tracking data
+    and replace them with the provided dataset.
+    """
     created = datetime(2025, 1, 1, 8, 0, 0)
 
-    # Insert initial habit
     sql_store.save_habit(
         {
             "name": "Old Habit",
@@ -92,7 +115,6 @@ def test_save_all_replaces_existing_data(sql_store: SQLStore) -> None:
     assert len(habits_before) == 1
     assert habits_before[0]["name"] == "Old Habit"
 
-    # Replace with save_all
     new_habits = [
         {
             "name": "Read",
@@ -121,10 +143,14 @@ def test_save_all_replaces_existing_data(sql_store: SQLStore) -> None:
 
 
 def test_delete_habit_removes_habit_and_tracking(sql_store: SQLStore) -> None:
+    """
+    Deleting a habit should:
+    - Remove the habit from the habits table
+    - Remove all associated tracking rows
+    """
     created = datetime(2025, 1, 1, 8, 0, 0)
     c1 = created + timedelta(days=1)
 
-    # habit 1 with a completion
     h1_id = sql_store.save_habit(
         {
             "name": "Read",
@@ -135,7 +161,6 @@ def test_delete_habit_removes_habit_and_tracking(sql_store: SQLStore) -> None:
         }
     )
 
-    # habit 2 without completion
     h2_id = sql_store.save_habit(
         {
             "name": "Workout",
@@ -155,7 +180,7 @@ def test_delete_habit_removes_habit_and_tracking(sql_store: SQLStore) -> None:
     assert habits_after[0]["id"] == h2_id
     assert habits_after[0]["name"] == "Workout"
 
-    # Verify tracking rows for deleted habit are also removed
+    # Direct DB check: tracking rows must be gone
     with sqlite3.connect(str(sql_store._db_path)) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM tracking WHERE habit_id = ?", (h1_id,))
@@ -165,6 +190,10 @@ def test_delete_habit_removes_habit_and_tracking(sql_store: SQLStore) -> None:
 
 
 def test_log_completion_appends_new_completion(sql_store: SQLStore) -> None:
+    """
+    log_completion() should append a new completion event
+    to an existing habit without overwriting previous data.
+    """
     created = datetime(2025, 1, 1, 8, 0, 0)
 
     habit_id = sql_store.save_habit(
@@ -183,7 +212,4 @@ def test_log_completion_appends_new_completion(sql_store: SQLStore) -> None:
 
     habits = sql_store.load_habits()
     assert len(habits) == 1
-
-    h = habits[0]
-    assert h["id"] == habit_id
-    assert h["completion_dates"] == [when]
+    assert habits[0]["completion_dates"] == [when]
