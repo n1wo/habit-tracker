@@ -65,15 +65,15 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-### 3️⃣ Install dependencies
-Install required packages:
-```bash
-pip install -r requirements.txt
-```
-
-Or use an **editable install** so Python automatically finds your `src/` folder:
+### 3️⃣ Install the project (runtime dependencies)
+Install the project in editable mode so Python automatically finds the src/ layout:
 ```bash
 pip install -e .
+```
+
+(Optional) Install development & test dependencies
+```bash
+pip install -r requirements-dev.txt
 ```
 
 ---
