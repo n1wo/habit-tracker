@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Dict, Optional
 
 from habit_tracker.models import Habit
 from habit_tracker.storage import Storage
@@ -34,7 +34,7 @@ class HabitManager(HabitService):
         """
         self._storage = storage
         self.habits: list[Habit] = []
-        self._habit_by_id: dict[int, Habit] = {}
+        self._habit_by_id: Dict[int, Habit] = {}
         self.habit_id_counter = 0
 
         if self._storage is not None:
@@ -74,7 +74,7 @@ class HabitManager(HabitService):
         if self.habits:
             self.habit_id_counter = max(h.habit_id for h in self.habits)
 
-    def _serialize_habit(self, habit: Habit) -> dict:
+    def _serialize_habit(self, habit: Habit) -> Dict:
         """
         Convert a Habit object into the dict format expected by Storage.
 

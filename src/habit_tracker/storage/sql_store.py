@@ -1,6 +1,6 @@
 import sqlite3
 from datetime import datetime
-from typing import Optional
+from typing import Dict, Optional
 from pathlib import Path
 
 from habit_tracker.storage import Storage
@@ -284,7 +284,7 @@ class SQLStore(Storage):
             )
             conn.commit()
 
-    def load_habits(self) -> list[dict]:
+    def load_habits(self) -> list[Dict]:
         """
         Load all habits and their completion history from the database.
 

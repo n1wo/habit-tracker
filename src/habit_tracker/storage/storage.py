@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List, Optional
+from habit_tracker.models.user import User
 
 
 class Storage(ABC):
@@ -81,5 +82,29 @@ class Storage(ABC):
         Args:
             habit_id: Unique identifier of the habit.
             when: Datetime when the habit was completed.
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def save_user(self, user: User) -> None:
+        """
+        Save user information to the storage.
+
+        Args:
+            user: 
+                User object containing user details:
+                    - username (str)
+                    - password_hash (str)
+                    - salt (str)    
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def load_user(self) -> Optional[User]:
+        """
+        Load user information from the storage.
+
+        Returns:
+            The stored User, or None if no user exists yet.
         """
         raise NotImplementedError
