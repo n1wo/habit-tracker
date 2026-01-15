@@ -49,19 +49,26 @@ It applies **Object-Oriented Programming (OOP)** for business logic and **Functi
 ### 1️⃣ Clone the repository
 ```bash
 git clone https://github.com/n1wo/habit-tracker.git
+```
+```bash
 cd habit-tracker
 ```
 
 ### 2️⃣ Create and activate a virtual environment
 **Windows (PowerShell):**
+
 ```powershell
 python -m venv .venv
+```
+```powershell
 .venv\Scripts\activate
 ```
 
 **macOS/Linux:**
 ```bash
 python -m venv .venv
+```
+```bash
 source .venv/bin/activate
 ```
 
