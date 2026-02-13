@@ -11,6 +11,7 @@ from typing import Optional
 import questionary
 from questionary import Choice
 
+from habit_tracker.ui.validators import required_text, optional_text
 from habit_tracker.services import HabitService
 from habit_tracker.analytics import (
     list_all_habits,
@@ -24,34 +25,62 @@ from habit_tracker.analytics import (
 # ---------------------------------------------------------------------------
 # Habit actions
 # ---------------------------------------------------------------------------
+NAME_PATTERN = r"[A-Za-z0-9 _-]+"
+DESC_PATTERN = r"[A-Za-z0-9 _\-\.,!?()']*"
+
 def add_habit(service: HabitService) -> None:
     """Prompt the user for habit data and create a new habit."""
-    name = questionary.text("Enter habit name:").ask()
-    if not name:
-        print("No name entered.")
+    name_raw = questionary.text(
+        "Enter habit name:",
+        validate=required_text(
+            field_name="Habit name",
+            min_len=1,
+            max_len=40,
+            pattern=NAME_PATTERN,
+        ),
+    ).ask()
+
+    if name_raw is None:
+        print("\n🔙 Cancelled.\n")
+        return
+
+    name = name_raw.strip()
+
+    existing = {h.name.strip().lower() for h in service.list_habits()}
+    if name.lower() in existing:
+        print("\n❌ A habit with that name already exists.\n")
         return
 
     periodicity = questionary.select(
         "Choose periodicity:",
         choices=["Daily", "Weekly"],
     ).ask()
-    if not periodicity:
-        print("No periodicity selected.")
+
+    if periodicity is None:
+        print("\n🔙 Cancelled.\n")
         return
 
-    description = questionary.text("Enter description (optional):").ask()
+    desc_raw = questionary.text(
+        "Enter description (optional):",
+        validate=optional_text(max_len=120, pattern=DESC_PATTERN),
+    ).ask()
+
+    if desc_raw is None:
+        print("\n🔙 Cancelled.\n")
+        return
+
+    description = desc_raw.strip() or None
 
     habit = service.add_habit(
         name=name,
         periodicity=periodicity.lower(),
-        description=description or None,
+        description=description,
     )
 
     print(
         f"\n✅ Habit added: (id={habit.habit_id}) {habit.name} [{habit.periodicity}] "
         f"- {habit.description or 'No description'}\n"
     )
-
 
 def remove_habit(service: HabitService) -> None:
     """Prompt the user to select and remove an existing habit."""
