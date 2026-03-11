@@ -135,7 +135,7 @@ Use it to test analytics and habit streak features.
 
 ## 📋 Requirements Summary
 
-- **Python ≥ 3.10**  
+- **Python ≥ 3.13**  
 - No external habit-tracking libraries  
 - Project must include:
   - README with setup and usage instructions  
