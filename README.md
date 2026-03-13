@@ -19,7 +19,7 @@ It applies **Object-Oriented Programming (OOP)** for business logic and **Functi
 🔁 Supports **daily** and **weekly** habits  
 🗓️ Mark habits as **completed**  
 📊 Analyze progress and streaks  
-💾 Persistent data storage via **SQLite** or **JSON**  
+💾 Persistent data storage via **SQLite** 
 🔐 Secure login with **SHA-256 password hashing**  
 🧪 Tested with **pytest**  
 💬 User-friendly CLI built with **questionary**
@@ -135,7 +135,7 @@ Use it to test analytics and habit streak features.
 
 ## 📋 Requirements Summary
 
-- **Python ≥ 3.13**  
+- **Python ≥ 3.10**  
 - No external habit-tracking libraries  
 - Project must include:
   - README with setup and usage instructions  
