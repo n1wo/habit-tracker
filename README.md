@@ -1,6 +1,6 @@
 # 🧠 Habit Tracker App
 
-A **Command-Line Interface (CLI)** application built with **Python 3.14**, designed to help users **create, track, and analyze habits** using a modular, testable architecture.
+A **Command-Line Interface (CLI)** application built and tested with **Python 3.13.7**, designed to help users **create, track, and analyze habits** using a modular, testable architecture.
 
 Developed as part of the **IU course DLBDSOOFPP01 – Object-Oriented and Functional Programming with Python**.
 
@@ -33,7 +33,7 @@ It applies **Object-Oriented Programming (OOP)** for business logic and **Functi
 | **Boundary (UI)** | Handles user interaction and display | `CLI (questionary)` |
 | **Control (Service)** | Core application logic | `HabitManager`, `AuthManager` |
 | **Entity (Data)** | Data models (independent of storage) | `Habit`, `User` |
-| **Persistence (Storage)** | Saves and loads data | `Storage`, `SqliteStorage`, `JsonStorage` |
+| **Persistence (Storage)** | Saves and loads data | `Storage`, `SQLStore`|
 | **Analytics (Functional)** | Pure functions (no side effects) | `analytics.py` |
 
 ### Design Principles
@@ -135,12 +135,12 @@ Use it to test analytics and habit streak features.
 
 ## 📋 Requirements Summary
 
-- **Python ≥ 3.10**  
+- **Python ≥ 3.10** (developed/tested with Python 3.13.7) 
 - No external habit-tracking libraries  
 - Project must include:
   - README with setup and usage instructions  
   - Docstrings and comments  
-  - Persistent storage (JSON or SQLite)  
+  - Persistent storage (SQLite)  
   - Functional analytics  
   - Unit tests (`pytest`)
 
