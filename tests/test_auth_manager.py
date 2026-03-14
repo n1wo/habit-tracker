@@ -54,7 +54,7 @@ def test_set_password_when_user_exists_raises() -> None:
 # Login + current user
 # ---------------------------------------------------------------------------
 
-def test_login_success_and_failure() -> None:
+def test_login_success_and_failed_attempt_preserves_current_user() -> None:
     """
     login() should:
     - return True and set current user on correct password
@@ -66,15 +66,15 @@ def test_login_success_and_failure() -> None:
     auth.set_password("secret123")
     assert auth.get_current_user() is not None  # set_password stores & sets current user
 
-    # Optional: simulate "logged out" by constructing a fresh manager instance.
+    # Simulate "logged out" by constructing a fresh manager instance.
     auth = AuthManager(storage)
     assert auth.get_current_user() is None
 
     assert auth.login("secret123") is True
     assert auth.get_current_user() is not None
 
-    # Wrong password should fail. By current implementation, it does not clear
-    # the existing authenticated user.
+    # Current behavior: a failed login attempt does not clear an already
+    # authenticated user on this AuthManager instance.
     assert auth.login("wrongpass") is False
     assert auth.get_current_user() is not None
 
