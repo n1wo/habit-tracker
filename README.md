@@ -173,6 +173,7 @@ Use it to test analytics and habit streak features.
 
 ### Stored User Record
 Stored credentials are persisted as a password hash and random salt, not as plaintext passwords.
+
 ![Stored User Record](docs/screenshots/Stored_User.png)
 
 ### Test Suite
