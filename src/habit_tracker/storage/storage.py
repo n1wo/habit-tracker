@@ -30,6 +30,28 @@ class Storage(ABC):
             The unique identifier assigned to the habit.
         """
         raise NotImplementedError
+    
+    @abstractmethod
+    def update_habit(
+        self,
+        habit_id: int,
+        name: str,
+        periodicity: str,
+        description: str,
+    ) -> bool:
+        """
+        Update an existing habit's editable fields.
+
+        Args:
+            habit_id: Unique identifier of the habit.
+            name: Updated habit name.
+            periodicity: Updated periodicity.
+            description: Updated description (empty string means no description).
+
+        Returns:
+            True if the habit was updated, False if not found.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def save_all(self, habits_list: List[Dict[str, Any]]) -> bool:
@@ -108,3 +130,6 @@ class Storage(ABC):
             The stored User, or None if no user exists yet.
         """
         raise NotImplementedError
+    
+
+

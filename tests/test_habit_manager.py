@@ -40,6 +40,7 @@ class SpyStorage:
 
     # call tracking
     save_habit_calls: List[Dict[str, Any]] = field(default_factory=list)
+    update_habit_calls: List[Dict[str, Any]] = field(default_factory=list)
     delete_habit_calls: List[int] = field(default_factory=list)
     log_completion_calls: List[tuple[int, datetime]] = field(default_factory=list)
     save_all_calls: List[List[Dict[str, Any]]] = field(default_factory=list)
@@ -66,6 +67,32 @@ class SpyStorage:
             }
         )
         return habit_id
+    
+    def update_habit(
+        self,
+        habit_id: int,
+        name: str,
+        periodicity: str,
+        description: str,
+    ) -> bool:
+        self.update_habit_calls.append(
+            {
+                "habit_id": habit_id,
+                "name": name,
+                "periodicity": periodicity,
+                "description": description,
+            }
+        )
+
+        for h in self.habits:
+            if h.get("id") == habit_id:
+                h["name"] = name
+                h["periodicity"] = periodicity
+                h["description"] = description
+                return True
+
+        return False
+
 
     def save_all(self, habits_list: List[Dict[str, Any]]) -> bool:
         self.save_all_calls.append(habits_list)
@@ -138,6 +165,98 @@ def test_add_habit_in_memory_assigns_incrementing_ids(fixed_now) -> None:
     assert h2.created_date == fixed_now
     assert mgr.list_habits() == [h1, h2]
 
+def test_edit_habit_in_memory_updates_selected_fields_and_preserves_history(fixed_now) -> None:
+    mgr = HabitManager(storage=None)
+    h = mgr.add_habit("Read", "daily", description="10 pages")
+
+    completion = datetime(2025, 1, 2, 9, 0, 0)
+    assert mgr.log_completion(h.habit_id, when=completion) is True
+
+    updated = mgr.edit_habit(
+        h.habit_id,
+        name="Read Books",
+        periodicity="weekly",
+        description="20 pages",
+    )
+
+    assert updated is not None
+    assert updated.habit_id == h.habit_id
+    assert updated.name == "Read Books"
+    assert updated.periodicity == "weekly"
+    assert updated.description == "20 pages"
+    assert updated.created_date == fixed_now
+    assert updated.completion_dates == [completion]
+
+def test_edit_habit_returns_none_for_unknown_id(fixed_now) -> None:
+    mgr = HabitManager(storage=None)
+
+    updated = mgr.edit_habit(
+        999,
+        name="Anything",
+        periodicity="daily",
+        description="Desc",
+    )
+
+    assert updated is None
+
+def test_edit_habit_allows_partial_updates(fixed_now) -> None:
+    mgr = HabitManager(storage=None)
+    h = mgr.add_habit("Read", "daily", description="10 pages")
+
+    updated = mgr.edit_habit(h.habit_id, name="Read More")
+
+    assert updated is not None
+    assert updated.name == "Read More"
+    assert updated.periodicity == "daily"
+    assert updated.description == "10 pages"
+
+def test_edit_habit_empty_description_clears_description(fixed_now) -> None:
+    mgr = HabitManager(storage=None)
+    h = mgr.add_habit("Read", "daily", description="10 pages")
+
+    updated = mgr.edit_habit(h.habit_id, description="")
+
+    assert updated is not None
+    assert updated.description is None
+
+def test_edit_habit_with_storage_calls_update_habit(fixed_now) -> None:
+    store = SpyStorage()
+    mgr = HabitManager(storage=store)
+    h = mgr.add_habit("Read", "daily", description="10 pages")
+
+    updated = mgr.edit_habit(
+        h.habit_id,
+        name="Read Books",
+        periodicity="weekly",
+        description="20 pages",
+    )
+
+    assert updated is not None
+    assert store.update_habit_calls == [
+        {
+            "habit_id": h.habit_id,
+            "name": "Read Books",
+            "periodicity": "weekly",
+            "description": "20 pages",
+        }
+    ]
+
+def test_edit_habit_with_storage_updates_persisted_habit_data(fixed_now) -> None:
+    store = SpyStorage()
+    mgr = HabitManager(storage=store)
+    h = mgr.add_habit("Read", "daily", description="10 pages")
+
+    mgr.edit_habit(
+        h.habit_id,
+        name="Read Books",
+        periodicity="weekly",
+        description="20 pages",
+    )
+
+    persisted = store.habits[0]
+    assert persisted["name"] == "Read Books"
+    assert persisted["periodicity"] == "weekly"
+    assert persisted["description"] == "20 pages"
 
 def test_remove_habit_in_memory_success_and_failure(fixed_now) -> None:
     """remove_habit returns True when removed and False when id is unknown."""
@@ -268,7 +387,7 @@ def test_add_habit_with_storage_uses_db_assigned_id_and_calls_save_habit(fixed_n
 
     assert h.habit_id == 1
     assert len(store.save_habit_calls) == 1
-    assert store.save_habit_calls[0]["name"] == "Read"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+    assert store.save_habit_calls[0]["name"] == "Read"
     assert store.save_habit_calls[0]["periodicity"] == "daily"
     assert store.save_habit_calls[0]["description"] == "10 pages"
     assert mgr.habit_id_counter == 1

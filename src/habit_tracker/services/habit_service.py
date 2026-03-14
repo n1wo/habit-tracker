@@ -54,3 +54,25 @@ class HabitService(ABC):
             True if the habit was removed, False if not found.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def edit_habit(
+        self,
+        habit_id: int,
+        name: Optional[str] = None,
+        periodicity: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Optional[Habit]:
+        """
+        Edit an existing habit's details.
+
+        Args:
+            habit_id: Unique identifier of the habit to edit.
+            name: New name for the habit (optional).
+            periodicity: New periodicity (optional).
+            description: New description (optional).
+
+        Returns:
+            The updated Habit instance, or None if not found.
+        """
+        raise NotImplementedError

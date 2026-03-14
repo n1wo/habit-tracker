@@ -34,3 +34,18 @@ class InMemoryStorage(Storage):
 
     def log_completion(self, habit_id: int, when: datetime):
         raise NotImplementedError
+    
+    def update_habit(
+        self,
+        habit_id: int,
+        name: str,
+        periodicity: str,
+        description: str,
+    ) -> bool:
+        for habit in self.habits:
+            if habit["id"] == habit_id:
+                habit["name"] = name
+                habit["periodicity"] = periodicity
+                habit["description"] = description
+                return True
+        return False

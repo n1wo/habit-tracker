@@ -82,6 +82,98 @@ def add_habit(service: HabitService) -> None:
         f"- {habit.description or 'No description'}\n"
     )
 
+def edit_habit(service: HabitService) -> None:
+    """Prompt the user to edit an existing habit."""
+    habits = service.list_habits()
+    if not habits:
+        print("\n📋 No habits to edit.\n")
+        return
+
+    choices = [
+        Choice(title=f"(id={h.habit_id}) {h.name}", value=h.habit_id)
+        for h in habits
+    ]
+    choices.append(Choice("Cancel", value=None))
+
+    selected_id: Optional[int] = questionary.select(
+        "Select a habit to edit:",
+        choices=choices,
+    ).ask()
+
+    if selected_id is None:
+        print("\n🔙 Cancelled.\n")
+        return
+
+    habit = next((h for h in habits if h.habit_id == selected_id), None)
+    if habit is None:
+        print("\n❌ Habit not found.\n")
+        return
+
+    name_raw = questionary.text(
+        f"Enter new habit name [{habit.name}]:",
+        default=habit.name,
+        validate=required_text(
+            field_name="Habit name",
+            min_len=1,
+            max_len=40,
+            pattern=NAME_PATTERN,
+        ),
+    ).ask()
+
+    if name_raw is None:
+        print("\n🔙 Cancelled.\n")
+        return
+
+    name = name_raw.strip()
+
+    existing = {
+        h.name.strip().lower()
+        for h in habits
+        if h.habit_id != habit.habit_id
+    }
+    if name.lower() in existing:
+        print("\n❌ A habit with that name already exists.\n")
+        return
+
+    current_periodicity = habit.periodicity.capitalize()
+    periodicity = questionary.select(
+        "Choose new periodicity:",
+        choices=["Daily", "Weekly"],
+        default=current_periodicity,
+    ).ask()
+
+    if periodicity is None:
+        print("\n🔙 Cancelled.\n")
+        return
+
+    desc_default = habit.description or ""
+    desc_raw = questionary.text(
+        "Enter new description (optional, leave blank to clear):",
+        default=desc_default,
+        validate=optional_text(max_len=120, pattern=DESC_PATTERN),
+    ).ask()
+
+    if desc_raw is None:
+        print("\n🔙 Cancelled.\n")
+        return
+
+    updated = service.edit_habit(
+        habit_id=habit.habit_id,
+        name=name,
+        periodicity=periodicity.lower(),
+        description=desc_raw.strip(),
+    )
+
+    if updated is None:
+        print("\n❌ Habit not found.\n")
+        return
+
+    print(
+        f"\n✅ Habit updated: (id={updated.habit_id}) {updated.name} "
+        f"[{updated.periodicity}] - {updated.description or 'No description'}\n"
+    )
+
+
 def remove_habit(service: HabitService) -> None:
     """Prompt the user to select and remove an existing habit."""
     habits = service.list_habits()

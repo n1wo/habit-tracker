@@ -211,6 +211,39 @@ class SQLStore(Storage):
 
             conn.commit()
             return habit_id
+        
+    def update_habit(
+        self,
+        habit_id: int,
+        name: str,
+        periodicity: str,
+        description: str,
+    ) -> bool:
+        """
+        Update an existing habit's editable fields.
+
+        Args:
+            habit_id: Database id of the habit to update.
+            name: Updated habit name.
+            periodicity: Updated habit periodicity.
+            description: Updated description (empty string means no description).
+
+        Returns:
+            True if a habit row was updated, False if no matching habit exists.
+        """
+        with sqlite3.connect(str(self._db_path)) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE habits
+                SET name = ?, description = ?, periodicity = ?
+                WHERE id = ?
+                """,
+                (name, description, periodicity, habit_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
 
     def save_all(self, habits_list) -> bool:
         """

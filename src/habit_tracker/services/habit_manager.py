@@ -175,7 +175,58 @@ class HabitManager(HabitService):
 
         self.habits.append(new_habit)
         self._habit_by_id[habit_id] = new_habit
+        
         return new_habit
+    
+    def edit_habit(
+            self,
+            habit_id: int,
+            name: Optional[str] = None,
+            periodicity: Optional[str] = None,
+            description: Optional[str] = None,
+        ) -> Optional[Habit]:
+            """
+            Edit an existing habit in place.
+
+            Semantics:
+            - Any argument left as None is treated as "no change".
+            - An empty string for description clears the description.
+            - created_date and completion_dates are preserved.
+
+            Args:
+                habit_id: Unique identifier of the habit to edit.
+                name: New habit name, or None to leave unchanged.
+                periodicity: New periodicity, or None to leave unchanged.
+                description: New description, or None to leave unchanged.
+
+            Returns:
+                The updated Habit instance, or None if no habit with habit_id exists.
+            """
+            habit = self._habit_by_id.get(habit_id)
+            if habit is None:
+                return None
+
+            if name is not None:
+                habit.name = name
+
+            if periodicity is not None:
+                habit.periodicity = periodicity
+
+            if description is not None:
+                habit.description = description or None
+
+            if self._storage is not None:
+                updated = self._storage.update_habit(
+                    habit_id=habit.habit_id,
+                    name=habit.name,
+                    periodicity=habit.periodicity,
+                    description=habit.description or "",
+                )
+                if not updated:
+
+                    return None
+     
+            return habit
 
     def remove_habit(self, habit_id: int) -> bool:
         """
@@ -267,3 +318,4 @@ class HabitManager(HabitService):
             count += 1
 
         return count
+    
