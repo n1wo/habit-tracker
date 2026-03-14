@@ -15,12 +15,12 @@ It applies **Object-Oriented Programming (OOP)** for business logic and **Functi
 
 ## 🧩 Features
 
-✅ Create, view, and delete habits  
+✅ Create, view, edit, and delete habits  
 🔁 Supports **daily** and **weekly** habits  
 🗓️ Mark habits as **completed**  
 📊 Analyze progress and streaks  
-💾 Persistent data storage via **SQLite** 
-🔐 Secure login with **SHA-256 password hashing**  
+💾 Persistent data storage via **SQLite**
+🔐 Secure login with **PBKDF2-HMAC (SHA-256) password hashing with random salt**  
 🧪 Tested with **pytest**  
 💬 User-friendly CLI built with **questionary**
 
@@ -33,7 +33,7 @@ It applies **Object-Oriented Programming (OOP)** for business logic and **Functi
 | **Boundary (UI)** | Handles user interaction and display | `CLI (questionary)` |
 | **Control (Service)** | Core application logic | `HabitManager`, `AuthManager` |
 | **Entity (Data)** | Data models (independent of storage) | `Habit`, `User` |
-| **Persistence (Storage)** | Saves and loads data | `Storage`, `SQLStore`|
+| **Persistence (Storage)** | Saves and loads data | `Storage`, `SQLStore` |
 | **Analytics (Functional)** | Pure functions (no side effects) | `analytics.py` |
 
 ### Design Principles
@@ -95,16 +95,17 @@ python -m habit_tracker
 
 ### The CLI will guide you through:
 - 🔐 First-time password setup (stored securely)
-- 📋 Main menu for creating, viewing, and analyzing habits
+- 📋 Main menu for creating, viewing, editing, and analyzing habits
 - ✅ Marking habits as completed
 - 🏆 Viewing streak analytics
 
 Example flow:
 ```
-> Add new habit
-> Mark habit as completed
-> View all habits
-> Analyze longest streak
+> Add Habit
+> Edit Habit
+> Remove Habit
+> Log completion
+> Analytics
 ```
 
 ---
@@ -117,7 +118,7 @@ pytest
 ```
 
 ### Test coverage includes:
-- Habit creation and deletion
+- Habit creation, editing, and deletion
 - Completion tracking and streak logic
 - Analytics (pure functions)
 - Authentication and password handling
@@ -160,3 +161,15 @@ Use it to test analytics and habit streak features.
     ```powershell
     $env:PYTHONPATH = (Resolve-Path "src").Path
     ```
+
+
+## Screenshots
+
+### Login / Mode Selection
+![Login Menu](docs/screenshots/Login_Menu.png)
+
+### Habit Inspection
+![Habit Inspection](docs/screenshots/Habit_Inspection.png)
+
+### Test Suite
+![Pytest Screenshot](docs/screenshots/Pytest_Screenshot.png)
