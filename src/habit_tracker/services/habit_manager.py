@@ -132,7 +132,13 @@ class HabitManager(HabitService):
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-    def add_habit(self, name: str, periodicity: str, description: Optional[str] = None) -> Habit:
+    def add_habit(
+        self,
+        name: str,
+        periodicity: str,
+        description: Optional[str] = None,
+        created_date: Optional[datetime] = None,
+    ) -> Habit:
         """
         Add a new habit.
 
@@ -143,11 +149,12 @@ class HabitManager(HabitService):
             name: Habit name.
             periodicity: "daily" or "weekly" (string-based).
             description: Optional longer description.
+            created_date: Optional creation datetime. If omitted, uses datetime.now().
 
         Returns:
             The created Habit instance.
         """
-        created = datetime.now()
+        created = created_date or datetime.now()
 
         if self._storage is not None:
             habit_data = {

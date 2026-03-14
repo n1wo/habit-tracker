@@ -475,3 +475,16 @@ def test_seed_predefined_habits_force_adds_even_if_existing(monkeypatch, fixed_n
 
     assert created == 1
     assert [h.name for h in mgr.list_habits()] == ["Existing", "Drink Water"]
+
+def test_add_habit_uses_explicit_created_date_when_provided(fixed_now) -> None:
+    mgr = HabitManager(storage=None)
+    explicit_created = datetime(2024, 12, 1, 9, 30, 0)
+
+    h = mgr.add_habit(
+        "Read",
+        "daily",
+        description="10 pages",
+        created_date=explicit_created,
+    )
+
+    assert h.created_date == explicit_created

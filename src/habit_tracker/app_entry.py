@@ -37,6 +37,7 @@ def _run_demo_session() -> None:
             name=habit_dict["name"],
             periodicity=habit_dict["periodicity"],
             description=habit_dict["description"],
+            created_date=habit_dict["created_date"],
         )
         for dt in habit_dict["completion_dates"]:
             manager.log_completion(habit.habit_id, when=dt)
