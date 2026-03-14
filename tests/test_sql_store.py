@@ -213,3 +213,52 @@ def test_log_completion_appends_new_completion(sql_store: SQLStore) -> None:
     habits = sql_store.load_habits()
     assert len(habits) == 1
     assert habits[0]["completion_dates"] == [when]
+
+def test_update_habit_updates_editable_fields_only(sql_store: SQLStore) -> None:
+    """
+    update_habit() should update name, description, and periodicity
+    without changing created_date or completion history.
+    """
+    created = datetime(2025, 1, 1, 8, 0, 0)
+    completion = created + timedelta(days=1)
+
+    habit_id = sql_store.save_habit(
+        {
+            "name": "Read",
+            "description": "10 pages",
+            "periodicity": "daily",
+            "created_date": created,
+            "completion_dates": [completion],
+        }
+    )
+
+    updated = sql_store.update_habit(
+        habit_id=habit_id,
+        name="Read Books",
+        periodicity="weekly",
+        description="20 pages",
+    )
+
+    assert updated is True
+
+    habits = sql_store.load_habits()
+    assert len(habits) == 1
+
+    h = habits[0]
+    assert h["id"] == habit_id
+    assert h["name"] == "Read Books"
+    assert h["description"] == "20 pages"
+    assert h["periodicity"] == "weekly"
+    assert h["created_date"] == created
+    assert h["completion_dates"] == [completion]
+
+def test_update_habit_returns_false_for_unknown_id(sql_store: SQLStore) -> None:
+    updated = sql_store.update_habit(
+        habit_id=999,
+        name="Does not exist",
+        periodicity="daily",
+        description="",
+    )
+
+    assert updated is False
+

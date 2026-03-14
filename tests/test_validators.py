@@ -29,7 +29,7 @@ def name_validator():
     """
     return required_text(
         field_name="Habit name",
-        min_len=2,
+        min_len=1,
         max_len=40,
         pattern=NAME_PATTERN,
     )
@@ -60,11 +60,18 @@ def test_required_text_rejects_empty_and_whitespace(name_validator) -> None:
     assert isinstance(result_ws, str)
 
 
-def test_required_text_rejects_too_short(name_validator) -> None:
+def test_required_text_rejects_too_short() -> None:
     """
     required_text() should reject values shorter than min_len.
     """
-    result = name_validator("A")
+    validate = required_text(
+        field_name="Habit name",
+        min_len=2,
+        max_len=40,
+        pattern=NAME_PATTERN,
+    )
+
+    result = validate("A")
 
     assert result is not True
     assert isinstance(result, str)
@@ -105,6 +112,7 @@ def test_required_text_accepts_valid_input(name_validator) -> None:
     """
     required_text() should accept valid values that meet length + pattern rules.
     """
+    assert name_validator("A") is True
     assert name_validator("Read") is True
     assert name_validator("Gym - Day 1") is True
     assert name_validator("Read_Books_2026") is True

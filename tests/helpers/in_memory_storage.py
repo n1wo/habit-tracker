@@ -42,10 +42,4 @@ class InMemoryStorage(Storage):
         periodicity: str,
         description: str,
     ) -> bool:
-        for habit in self.habits:
-            if habit["id"] == habit_id:
-                habit["name"] = name
-                habit["periodicity"] = periodicity
-                habit["description"] = description
-                return True
-        return False
+        raise NotImplementedError
