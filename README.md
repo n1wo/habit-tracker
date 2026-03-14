@@ -168,8 +168,15 @@ Use it to test analytics and habit streak features.
 ### Login / Mode Selection
 ![Login Menu](docs/screenshots/Login_Menu.png)
 
-### Habit Inspection
-![Habit Inspection](docs/screenshots/Habit_Inspection.png)
+### Main Menu
+![Main Menu](docs/screenshots/Main_Menu.png)
+
+### Stored User Record
+Stored credentials are persisted as a password hash and random salt, not as plaintext passwords.
+![Stored User Record](docs/screenshots/Stored_User.png)
 
 ### Test Suite
 ![Pytest Screenshot](docs/screenshots/Pytest_Screenshot.png)
+
+### Habit Inspection
+![Habit Inspection](docs/screenshots/Habit_Inspection.png)
