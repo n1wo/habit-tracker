@@ -172,7 +172,7 @@ Use it to test analytics and habit streak features.
 ![Main Menu](docs/screenshots/Main_Menu.png)
 
 ### Stored User Record
-Stored credentials are persisted as a password hash and random salt, not as plaintext passwords.
+Stored credentials are saved as a password hash and random salt, not as plaintext passwords.
 
 ![Stored User Record](docs/screenshots/Stored_User.png)
 
