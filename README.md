@@ -19,14 +19,14 @@ It applies **Object-Oriented Programming (OOP)** for business logic and **Functi
 
 ## 🧩 Features
 
-✅ Create, view, edit, and delete habits  
-🔁 Supports **daily** and **weekly** habits  
-🗓️ Mark habits as **completed**  
-📊 Analyze progress and streaks  
-💾 Persistent data storage via **SQLite**
-🔐 Secure login with **PBKDF2-HMAC (SHA-256) password hashing with random salt**  
-🧪 Tested with **pytest**  
-💬 User-friendly CLI built with **questionary**
+- ✅ Create, view, edit, and delete habits  
+- 🔁 Supports **daily** and **weekly** habits  
+- 🗓️ Mark habits as **completed**  
+- 📊 Analyze progress and streaks  
+- 💾 Persistent data storage via **SQLite**
+- 🔐 Secure login with **PBKDF2-HMAC (SHA-256) password hashing with random salt**  
+- 🧪 Tested with **pytest**  
+- 💬 User-friendly CLI built with **questionary**
 
 ---
 
