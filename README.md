@@ -132,13 +132,21 @@ python -m habit_tracker
 - 🏆 Viewing streak analytics
 
 #### Example flow:
+1. Startup
 <img src="docs/screenshots/flow/1.png" width="700">
+2. Password Setup
 <img src="docs/screenshots/flow/2.png" width="700">
+3. Main Menu
 <img src="docs/screenshots/flow/3.png" width="700">
+4. Add Habit
 <img src="docs/screenshots/flow/4.png" width="700">
+5. Habit list
 <img src="docs/screenshots/flow/5.png" width="700">
+6. Log Completion
 <img src="docs/screenshots/flow/6.png" width="700">
+7. Analytics Menu
 <img src="docs/screenshots/flow/7.png" width="700">
+8. Habit Inspection
 <img src="docs/screenshots/flow/8.png" width="700">
 
 ---
