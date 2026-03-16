@@ -131,15 +131,15 @@ python -m habit_tracker
 - ✅ Marking habits as completed
 - 🏆 Viewing streak analytics
 
-Example flow:
-![1](docs/screenshots/flow/1.png)
-![2](docs/screenshots/flow/2.png)
-![3](docs/screenshots/flow/3.png)
-![4](docs/screenshots/flow/4.png)
-![5](docs/screenshots/flow/5.png)
-![6](docs/screenshots/flow/6.png)
-![7](docs/screenshots/flow/7.png)
-![8](docs/screenshots/flow/8.png)
+#### Example flow:
+<img src="docs/screenshots/flow/1.png" width="700">
+<img src="docs/screenshots/flow/2.png" width="700">
+<img src="docs/screenshots/flow/3.png" width="700">
+<img src="docs/screenshots/flow/4.png" width="700">
+<img src="docs/screenshots/flow/5.png" width="700">
+<img src="docs/screenshots/flow/6.png" width="700">
+<img src="docs/screenshots/flow/7.png" width="700">
+<img src="docs/screenshots/flow/8.png" width="700">
 
 ---
 
