@@ -65,7 +65,7 @@ habit-tracker/
 │
 ├── tests/                  # Unit tests validating core logic and analytics
 ├── docs/                   # Project documentation, diagrams, and screenshots
-├── data/                   # Example dataset used for demonstration and testing
+├── data/                   # Application data storage
 │
 ├── pyproject.toml          # Project configuration and build metadata
 ├── requirements-dev.txt    # Development and testing dependencies
@@ -132,13 +132,14 @@ python -m habit_tracker
 - 🏆 Viewing streak analytics
 
 Example flow:
-```
-> Add Habit
-> Edit Habit
-> Remove Habit
-> Log completion
-> Analytics
-```
+![1](docs/screenshots/flow/1.png)
+![2](docs/screenshots/flow/2.png)
+![3](docs/screenshots/flow/3.png)
+![4](docs/screenshots/flow/4.png)
+![5](docs/screenshots/flow/5.png)
+![6](docs/screenshots/flow/6.png)
+![7](docs/screenshots/flow/7.png)
+![8](docs/screenshots/flow/8.png)
 
 ---
 
@@ -161,7 +162,7 @@ pytest
 
 The example dataset includes:
 - 5 sample habits (daily and weekly)
-- 4 weeks of completions  
+- 4 weeks of completions (demo)
 Use it to test analytics and habit streak features.
 
 ---
