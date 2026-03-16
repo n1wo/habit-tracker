@@ -1,5 +1,9 @@
 # 🧠 Habit Tracker App
 
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![Tests](https://img.shields.io/badge/tests-pytest-green)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
+
 A **Command-Line Interface (CLI)** application built and tested with **Python 3.13.7**, designed to help users **create, track, and analyze habits** using a modular, testable architecture.
 
 Developed as part of the **IU course DLBDSOOFPP01 – Object-Oriented and Functional Programming with Python**.
