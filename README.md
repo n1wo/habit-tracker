@@ -162,6 +162,16 @@ Use it to test analytics and habit streak features.
     $env:PYTHONPATH = (Resolve-Path "src").Path
     ```
 
+## Documentation
+
+Additional project documentation is available in the `docs/` folder.
+
+These include:
+- project concept
+- architecture diagram
+- development presentation
+- screenshots of the CLI application
+- abstract draft
 
 ## Screenshots
 
