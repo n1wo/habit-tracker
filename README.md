@@ -63,7 +63,7 @@ habit-tracker/
 │   ├── storage/            # Persistence layer and database interaction (SQLite backend)
 │   └── ui/                 # Command-line interface and user interaction
 │
-├── tests/                  # Unit tests validating core logic and analytics
+├── tests/                  # Unit tests 
 ├── docs/                   # Project documentation, diagrams, and screenshots
 ├── data/                   # Application data storage
 │
