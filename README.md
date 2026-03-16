@@ -48,6 +48,34 @@ It applies **Object-Oriented Programming (OOP)** for business logic and **Functi
 
 ---
 
+## 📂 Project Structure
+
+The repository follows a **modular `src` layout**, separating domain models, application services, analytics logic, and persistence to keep the system maintainable and testable.
+
+```text
+habit-tracker/
+│
+├── src/habit_tracker/      # Main application package
+│   ├── analytics/          # Functional analytics for streak calculations and habit analysis
+│   ├── fixtures/           # Predefined habits and example tracking data used for demos and testing
+│   ├── models/             # Core domain models (Habit, User)
+│   ├── services/           # Application logic and coordination (HabitManager, AuthManager)
+│   ├── storage/            # Persistence layer and database interaction (SQLite backend)
+│   └── ui/                 # Command-line interface and user interaction
+│
+├── tests/                  # Unit tests validating core logic and analytics
+├── docs/                   # Project documentation, diagrams, and screenshots
+├── data/                   # Example dataset used for demonstration and testing
+│
+├── pyproject.toml          # Project configuration and build metadata
+├── requirements-dev.txt    # Development and testing dependencies
+├── pytest.ini              # Pytest configuration
+├── README.md               # Project documentation and usage instructions
+└── LICENSE                 # MIT license
+```
+
+---
+
 ## ⚙️ Installation (Step-by-Step)
 
 ### 1️⃣ Clone the repository
