@@ -109,14 +109,13 @@ Install the project in editable mode so Python automatically finds the src/ layo
 ```bash
 pip install -e .
 ```
+> If editable installation fails, upgrade pip first:
+> `python3 -m pip install --upgrade pip`
 
 (Optional) Install development & test dependencies
 ```bash
 pip install -e '.[dev]'
 ```
-
-> If editable installation fails, upgrade pip first:
-> `python3 -m pip install --upgrade pip`
 
 ---
 
