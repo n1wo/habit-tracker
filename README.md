@@ -157,7 +157,7 @@ python -m habit_tracker
 
 Run all unit tests with:
 ```bash
-pytest
+python -m pytest
 ```
 
 ### Test coverage includes:
