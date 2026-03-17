@@ -175,17 +175,16 @@ Use it to test analytics and habit streak features.
 
 ---
 
-## 📋 Requirements Summary
+## 📋 Requirements & Compatibility
 
-- **Python ≥ 3.10** (developed/tested with Python 3.13.7) 
-- No external habit-tracking libraries  
-- Project must include:
-  - README with setup and usage instructions  
-  - Docstrings and comments  
-  - Persistent storage (SQLite)  
-  - Functional analytics  
-  - Unit tests (`pytest`)
-
+- Python **≥ 3.10** (developed and tested with Python 3.13.7)
+- No external habit-tracking libraries are used
+- The project includes:
+  - A complete CLI application with persistent storage (SQLite)
+  - Functional analytics for habit tracking and streak calculation
+  - Unit tests implemented with `pytest`
+  - Clear documentation and setup instructions in this README
+  
 ---
 
 ## 💡 Notes for Developers
