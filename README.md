@@ -112,7 +112,7 @@ pip install -e .
 
 (Optional) Install development & test dependencies
 ```bash
-pip install -r requirements-dev.txt
+pip install -e .[dev]
 ```
 
 ---
