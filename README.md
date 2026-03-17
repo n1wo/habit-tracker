@@ -112,8 +112,11 @@ pip install -e .
 
 (Optional) Install development & test dependencies
 ```bash
-pip install -e .[dev]
+pip install -e '.[dev]'
 ```
+
+> If editable installation fails, upgrade pip first:
+> `python3 -m pip install --upgrade pip`
 
 ---
 
@@ -184,7 +187,7 @@ Use it to test analytics and habit streak features.
   - Functional analytics for habit tracking and streak calculation
   - Unit tests implemented with `pytest`
   - Clear documentation and setup instructions in this README
-  
+
 ---
 
 ## 💡 Notes for Developers
