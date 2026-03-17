@@ -90,7 +90,7 @@ cd habit-tracker
 **Windows (PowerShell):**
 
 ```powershell
-python -m venv .venv
+py -m venv .venv
 ```
 ```powershell
 .venv\Scripts\activate
@@ -98,7 +98,7 @@ python -m venv .venv
 
 **macOS/Linux:**
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 ```
 ```bash
 source .venv/bin/activate
