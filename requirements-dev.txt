@@ -1,2 +1,0 @@
-pytest>=9.0.1
-questionary>=2.1.1
