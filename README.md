@@ -9,14 +9,15 @@ It requires Python **3.10** or higher and was developed and tested primarily wit
 
 Developed as part of the **IU course DLBDSOOFPP01 – Object-Oriented and Functional Programming with Python**.
 
-The final submission received a 100% overall score, achieving full marks in all assessment categories:
+The final submission received a **100% overall score**, achieving full marks in all assessment categories:
 
-Problem Solving Techniques – 100%
-Methodology / Ideas / Procedure – 100%
-Quality of Implementation – 100%
-Creativity / Correctness – 100%
-Formal Requirements – 100%
-Final Weighted Score: 100%
+- Problem Solving Techniques – **100%**
+- Methodology / Ideas / Procedure – **100%**
+- Quality of Implementation – **100%**
+- Creativity / Correctness – **100%**
+- Formal Requirements – **100%**
+
+**Final Weighted Score: 100%**
 
 ---
 
